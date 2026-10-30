@@ -28,9 +28,18 @@ Tema1::Tema1() {
 Tema1::~Tema1() {
 
 }
-void Tema1::CreateCardMesh(Card* card,const char* id) {
+void Tema1::CreateCardMesh(Card* card,const char* id, glm::vec3 color) {
 	card->mesh = new Mesh(id);
 	card->mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "card.obj");
+
+
+	std::vector<VertexFormat> coloredVertices;
+	for (int i = 0; i < card->mesh->positions.size(); i++) {
+		coloredVertices.push_back(VertexFormat(card->mesh->positions[i], color));
+	}
+
+	card->mesh->InitFromData(coloredVertices, card->mesh->indices);
+
 	meshes[card->mesh->GetMeshID()] = card->mesh;
 }
 Card::Card() {
@@ -54,9 +63,9 @@ void Tema1::Init() {
 	*/
 	//card = new Card();
 	card = new Card();
-	CreateCardMesh(card, "card1");
+	CreateCardMesh(card, "card1", glm::vec3(0.7f,0.0f, 0.0f));
 	card2 = new Card();
-	CreateCardMesh(card2, "card2");
+	CreateCardMesh(card2, "card2", glm::vec3(0.0f, 0.9f, 0.5f));
 
 	timer = new Timer(30.0f);
 	//timer->maxTime = 30.0f;
@@ -76,19 +85,21 @@ void Tema1::FrameStart() {
 
 }
 void Tema1::RenderCardStacks() {
+	//ChangeCardColor(card, glm::vec3(0.8f, 0, 0));
 	for (int i = 0; i < 25; i += 5) {
 		card->modelMatrix = glm::mat3(1);
 		card->modelMatrix *= trans2D::Translate(1100 - i, 200 + i);
 		card->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
 		card->modelMatrix *= trans2D::Scale(100, 100);
-		RenderMesh2D(card->mesh, shaders["Simple"], card->modelMatrix);
+		RenderMesh2D(card->mesh, shaders["VertexColor"], card->modelMatrix);
 	}
+	//ChangeCardColor(card, glm::vec3(0.0f, 0.7f, 0.0f));
 	for (int i = 0; i < 25; i += 5) {
-		card->modelMatrix = glm::mat3(1);
-		card->modelMatrix *= trans2D::Translate(1100 - i, 600 + i);
-		card->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		card->modelMatrix *= trans2D::Scale(100, 100);
-		RenderMesh2D(card->mesh, shaders["VertexNormal"], card->modelMatrix);
+		card2->modelMatrix = glm::mat3(1);
+		card2->modelMatrix *= trans2D::Translate(1100 - i, 600 + i);
+		card2->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
+		card2->modelMatrix *= trans2D::Scale(100, 100);
+		RenderMesh2D(card2->mesh, shaders["VertexColor"], card2->modelMatrix);
 	}
 }
 void Tema1::Update(float deltaTimeSeconds) {

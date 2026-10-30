@@ -41,8 +41,9 @@ namespace m1
 		void OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) override;
 		void OnWindowResize(int width, int height) override;
 
-		void CreateCardMesh(Card* card, const char *id);
+		void CreateCardMesh(Card* card, const char *id, glm::vec3 color);
 		void RenderCardStacks();
+		void ChangeCardColor(Card* card, glm::vec3 color);
 
 	protected:
 		Card* card;
