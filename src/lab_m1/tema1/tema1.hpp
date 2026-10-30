@@ -4,20 +4,34 @@
 
 namespace m1
 {
+	enum Element {
+		Pyro, Cryo, Hydro
+	};
 	class Card {
 	public:
 		Card();
-		float hp;
 		glm::mat3 modelMatrix;
 		Mesh* mesh;
 		void Init();
 
+	};
+	class CharacterCard : public Card {
+	public:
+		int hp;
+		Element element;
+		
+	};
+	class ActionCard : public Card {
+		int costDice;
 	};
 	class Timer {
 	public:
 		float maxTime;
 		float currentTime;
 		Timer(float maxTime);
+		glm::mat3 modelMatrix;
+		Mesh* CreateTimerBar(const char* name, glm::vec3 color, float z);
+
 		
 	};
 	class Tema1 : public gfxc::SimpleScene
@@ -43,6 +57,8 @@ namespace m1
 
 		void CreateCardMesh(Card* card, const char *id, glm::vec3 color);
 		void RenderCardStacks();
+		void RenderTimer(float deltaTimeSeconds);
+		void RenderPlayArena();
 		void ChangeCardColor(Card* card, glm::vec3 color);
 
 	protected:
