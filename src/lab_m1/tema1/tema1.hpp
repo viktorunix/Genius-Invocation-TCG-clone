@@ -15,7 +15,10 @@ namespace m1
 	};
 	class Timer {
 	public:
-		int timer;
+		float maxTime;
+		float currentTime;
+		Timer(float maxTime);
+		
 	};
 	class Tema1 : public gfxc::SimpleScene
 	{
@@ -44,6 +47,7 @@ namespace m1
 	protected:
 		Card* card;
 		Card* card2;
+		Timer* timer;
 	};
 
 	

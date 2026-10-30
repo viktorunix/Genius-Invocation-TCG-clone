@@ -5,7 +5,22 @@
 
 using namespace std;
 using namespace m1;
-
+Timer::Timer(float maxTime) {
+	this->maxTime = maxTime;
+	this->currentTime = this->maxTime;
+}
+Mesh* CreateTimerBar(const char* name, glm::vec3 color, float z = 0.0f) {
+	std::vector<VertexFormat> vertices = {
+		VertexFormat(glm::vec3(0,0,z), color),
+		VertexFormat(glm::vec3(40,0,z), color),
+		VertexFormat(glm::vec3(40, 250, z), color),
+		VertexFormat(glm::vec3(0, 250, z), color)
+	};
+	std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
+	Mesh* bar = new Mesh(name);
+	bar->InitFromData(vertices, indices);
+	return bar;
+}
 Tema1::Tema1() {
 
 }
@@ -43,6 +58,13 @@ void Tema1::Init() {
 	card2 = new Card();
 	CreateCardMesh(card2, "card2");
 
+	timer = new Timer(30.0f);
+	//timer->maxTime = 30.0f;
+	//timer->currentTime = timer->maxTime;
+	Mesh* timerBg = CreateTimerBar("timer_bg", glm::vec3(0.2f),0.0f);
+	meshes[timerBg->GetMeshID()] = timerBg;
+	Mesh* timerFg = CreateTimerBar("timer_fg", glm::vec3(0.0, 0.0f, 0.5f),0.01f);
+	meshes[timerFg->GetMeshID()] = timerFg;
 }
 
 void Tema1::FrameStart() {
@@ -90,6 +112,21 @@ void Tema1::Update(float deltaTimeSeconds) {
 	RenderMesh2D(card->mesh, shaders["Simple"], card2->modelMatrix);
 	*/
 	RenderCardStacks();
+
+	timer->currentTime -= deltaTimeSeconds;
+	if (timer->currentTime < 0) {
+		timer->currentTime = 0;
+	}
+	float scaleFactorY = timer->currentTime / timer->maxTime;
+
+	glm::mat3 modelMatrix = glm::mat3(1);
+	modelMatrix *= trans2D::Translate(800, 300.0f);
+	RenderMesh2D(meshes["timer_bg"], shaders["VertexColor"], modelMatrix);
+
+	modelMatrix = glm::mat3(1);
+	modelMatrix *= trans2D::Translate(800, 300);
+	modelMatrix *= trans2D::Scale(1, scaleFactorY);
+	RenderMesh2D(meshes["timer_fg"], shaders["VertexColor"], modelMatrix);
 }
 
 void Tema1::FrameEnd() {
