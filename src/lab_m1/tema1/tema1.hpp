@@ -4,12 +4,25 @@
 
 namespace m1
 {
+	class Card {
+	public:
+		Card();
+		float hp;
+		glm::mat3 modelMatrix;
+		Mesh* mesh;
+		void Init();
+
+	};
+	class Timer {
+	public:
+		int timer;
+	};
 	class Tema1 : public gfxc::SimpleScene
 	{
 	public:
 		Tema1();
 		~Tema1();
-
+		
 		void Init() override;
 	private:
 		void FrameStart() override;
@@ -25,6 +38,13 @@ namespace m1
 		void OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) override;
 		void OnWindowResize(int width, int height) override;
 
+		void CreateCardMesh(Card* card, const char *id);
+		void RenderCardStacks();
+
 	protected:
+		Card* card;
+		Card* card2;
 	};
+
+	
 }
