@@ -1,5 +1,5 @@
 #include "lab_m1/tema1/tema1.hpp"
-
+#include "lab_m1/tema1/trans2D.hpp"
 #include <vector>
 #include <iostream>
 
@@ -24,6 +24,9 @@ void Tema1::Init() {
 	GetCameraInput()->SetActive(false);
 
 
+	Mesh* card = new Mesh("card");
+	card->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "card.obj");
+	meshes[card->GetMeshID()] = card;
 }
 
 void Tema1::FrameStart() {
@@ -36,7 +39,14 @@ void Tema1::FrameStart() {
 }
 
 void Tema1::Update(float deltaTimeSeconds) {
+	glm::mat3 modelMatrix = glm::mat3(1);
 
+	modelMatrix *= trans2D::Translate(500, 500);
+	modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
+	modelMatrix *= trans2D::Scale(200, 200);
+
+	RenderMesh2D(meshes["card"],shaders["Simple"], modelMatrix);
+	
 }
 
 void Tema1::FrameEnd() {
