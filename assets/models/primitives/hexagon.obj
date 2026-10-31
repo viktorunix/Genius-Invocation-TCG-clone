@@ -1,0 +1,24 @@
+# Hexagon 2D creat pentru EGC
+
+o Hexagon
+
+# Vertecșii hexagonului (Z este 0 pentru 2D)
+
+v 1.000000 0.000000 0.000000
+v 0.500000 0.866025 0.000000
+v -0.500000 0.866025 0.000000
+v -1.000000 0.000000 0.000000
+v -0.500000 -0.866025 0.000000
+v 0.500000 -0.866025 0.000000
+
+# Normala îndreptată spre cameră (axa Z pozitivă)
+
+vn 0.0000 0.0000 1.0000
+
+# Fețele hexagonului (împărțit în 4 triunghiuri pentru a fi compatibil cu OpenGL)
+
+s off
+f 1//1 2//1 3//1
+f 1//1 3//1 4//1
+f 1//1 4//1 5//1
+f 1//1 5//1 6//1

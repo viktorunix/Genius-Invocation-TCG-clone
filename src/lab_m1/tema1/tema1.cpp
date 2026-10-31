@@ -5,6 +5,16 @@
 
 using namespace std;
 using namespace m1;
+Player::Player(int nrDices) {
+	for (int i = 0; i < nrDices; i++) {
+		Dice* dice = new Dice();
+		dice->element = Omni;
+		this->dices.push_back(dice);
+	}
+	this->dices[2]->element = Pyro;
+	this->dices[3]->element = Cryo;
+	this->dices[4]->element = Hydro;
+}
 Timer::Timer(float maxTime) {
 	this->maxTime = maxTime;
 	this->currentTime = this->maxTime;
@@ -25,9 +35,9 @@ Mesh* Timer::CreateTimerBar(const char* name, glm::vec3 color, float z = 0.0f) {
 Mesh* CreatePlayArena(const char* name, glm::vec3 color, float z = 0.0f) {
 	std::vector<VertexFormat> vertices = {
 		VertexFormat(glm::vec3(0,0,z), color),
-		VertexFormat(glm::vec3(100,0,z), color),
-		VertexFormat(glm::vec3(100, 50,z), color),
-		VertexFormat(glm::vec3(0, 50, z), color)
+		VertexFormat(glm::vec3(1,0,z), color),
+		VertexFormat(glm::vec3(1, 0.5f,z), color),
+		VertexFormat(glm::vec3(0, 0.5f, z), color)
 	};
 	std::vector<unsigned int> indices = { 0,1,2,0,2,3 };
 	Mesh* playArenaMesh = new Mesh(name);
@@ -54,6 +64,21 @@ void Tema1::CreateCardMesh(Card* card,const char* id, glm::vec3 color) {
 	card->mesh->InitFromData(coloredVertices, card->mesh->indices);
 
 	meshes[card->mesh->GetMeshID()] = card->mesh;
+}
+
+void Tema1::CreateDiceMesh(const char* id, glm::vec3 color) {
+	Mesh* mesh = new Mesh(id);
+	mesh->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "hexagon.obj");
+
+	std::vector<VertexFormat> coloredVertices;
+	for (int i = 0; i < mesh->positions.size(); i++) {
+		coloredVertices.push_back(VertexFormat(mesh->positions[i], color));
+
+	}
+	mesh->InitFromData(coloredVertices,mesh->indices);
+	meshes[mesh->GetMeshID()] = mesh;
+
+
 }
 Card::Card() {
 	this->modelMatrix = glm::mat3(1);
@@ -86,6 +111,13 @@ void Tema1::Init() {
 	heart->LoadMesh(PATH_JOIN(window->props.selfDir, RESOURCE_PATH::MODELS, "primitives"), "heart.obj");
 	meshes[heart->GetMeshID()] = heart;
 
+
+	CreateDiceMesh("dice_omni", glm::vec3(0.5f, 0.5f, 0.5f));
+	CreateDiceMesh("dice_pyro", glm::vec3(0.843f, 0.322f, 0.220f));
+	CreateDiceMesh("dice_cryo", glm::vec3(0.773f, 0.984f, 0.984f));
+	CreateDiceMesh("dice_hydro", glm::vec3(0.290f, 0.737f, 0.910f));
+
+	player = new Player(5);
 }
 
 void Tema1::FrameStart() {
@@ -132,33 +164,66 @@ void Tema1::RenderTimer(float deltaTimeSeconds) {
 }
 
 void Tema1::RenderPlayArena() {
-	glm::mat3 modelMatrix = glm::mat3(1);
-	modelMatrix *= trans2D::Translate(25.0f, 50.0f);
-	modelMatrix *= trans2D::Translate(100.0f, 250.0f);
-	modelMatrix *= trans2D::Scale(15.0f, 1.5f);
-	modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-	modelMatrix *= trans2D::Translate(-25.0f, -50.0f);
-	RenderMesh2D(meshes["playerPlayArena"], shaders["VertexNormal"], modelMatrix);
+	glm::ivec2 resolution = window->GetResolution();
+	float dynamicScaleX = resolution.x * 0.80f;
+	float dynamicScaleY = resolution.y * 0.20f * 2.0f; //cuz the mesh height is 0.5f;
+	float dynamicSpacing = dynamicScaleY * 2.1f;
+	float offsetLeft = resolution.x * 0.1f;
 
-	modelMatrix = glm::mat3(1);
-	modelMatrix *= trans2D::Translate(25.0f, 50.0f);
-	modelMatrix *= trans2D::Translate(100.0f, 450.0f);
-	modelMatrix *= trans2D::Scale(15.0f, 1.5f);
-	modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-	modelMatrix *= trans2D::Translate(-25.0f, -50.0f);
+	float posX = offsetLeft;
+	float posY = resolution.y * 0.25f;
+
+	glm::mat3 modelMatrix = glm::mat3(1);
+	modelMatrix *= trans2D::Translate(posX, posY);
+	modelMatrix *= trans2D::Scale(dynamicScaleX, dynamicScaleY);
+
 	RenderMesh2D(meshes["playerPlayArena"], shaders["VertexColor"], modelMatrix);
+
+	posY = resolution.y * 0.55f;
+	modelMatrix = glm::mat3(1);
+	modelMatrix *= trans2D::Translate(posX, posY);
+	modelMatrix *= trans2D::Scale(dynamicScaleX, dynamicScaleY);
+	RenderMesh2D(meshes["playerPlayArena"], shaders["VertexColor"], modelMatrix);
+
+}
+
+void Tema1::RenderDices() {
+	glm::ivec2 resolution = window->GetResolution();
+	float dynamicScale = resolution.y * 0.055f;
+	float dynamicSpacing = dynamicScale * 2.25f;
+	float offsetRight = resolution.x * 0.04f;
+	glm::mat3 modelMatrix;
+	for (int i = 0; i < player->dices.size(); i++) {
+		modelMatrix = glm::mat3(1);
+
+		float posX = (float)resolution.x - offsetRight;
+		float posY = (float)resolution.y - dynamicSpacing * (i + 1);
+		modelMatrix *= trans2D::Translate(posX, posY);
+		modelMatrix *= trans2D::Scale(dynamicScale, dynamicScale);
+		switch (player->dices[i]->element) {
+		case Omni:
+			RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], modelMatrix);
+			break;
+		case Pyro:
+			RenderMesh2D(meshes["dice_pyro"], shaders["VertexColor"], modelMatrix);
+			break;
+		case Cryo:
+			RenderMesh2D(meshes["dice_cryo"], shaders["VertexColor"], modelMatrix);
+			break;
+		case Hydro:
+			RenderMesh2D(meshes["dice_hydro"], shaders["VertexColor"], modelMatrix);
+			
+		}
+	}
 }
 void Tema1::Update(float deltaTimeSeconds) {
 
-	RenderCardStacks();
-	RenderTimer(deltaTimeSeconds);
+	glm::ivec2 resolution = window->GetResolution();
 	glm::mat3 modelMatrix = glm::mat3(1);
-	modelMatrix *= trans2D::Translate(100.0f, 400.0f);
-	modelMatrix *= trans2D::Scale(100.0f, 100.0f);
-	RenderMesh2D(meshes["heart"], shaders["Simple"], modelMatrix);
-	RenderPlayArena();
+	RenderDices();
 
-	
+
+	RenderPlayArena();
 }
 
 void Tema1::FrameEnd() {
@@ -190,5 +255,7 @@ void Tema1::OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) {
 }
 
 void Tema1::OnWindowResize(int width, int height) {
-
+	auto camera = GetSceneCamera();
+	camera->SetOrthographic(0, (float)width, 0, (float)height, 0.01f, 400);
+	camera->Update();
 }

@@ -1,11 +1,17 @@
 #pragma once
 
 #include "components/simple_scene.h"
+#include <vector>
 
 namespace m1
 {
 	enum Element {
-		Pyro, Cryo, Hydro
+		Omni, Pyro, Cryo, Hydro
+	};
+	class Dice {
+	public:
+		Element element;
+		Mesh* mesh;
 	};
 	class Card {
 	public:
@@ -34,6 +40,12 @@ namespace m1
 
 		
 	};
+
+	class Player {
+	public:
+		std::vector<Dice*> dices;
+		Player(int nrDices);
+	};
 	class Tema1 : public gfxc::SimpleScene
 	{
 	public:
@@ -56,15 +68,19 @@ namespace m1
 		void OnWindowResize(int width, int height) override;
 
 		void CreateCardMesh(Card* card, const char *id, glm::vec3 color);
+		void CreateDiceMesh(const char* id, glm::vec3 color);
 		void RenderCardStacks();
 		void RenderTimer(float deltaTimeSeconds);
 		void RenderPlayArena();
+		void RenderDices();
 		void ChangeCardColor(Card* card, glm::vec3 color);
 
 	protected:
 		Card* card;
 		Card* card2;
 		Timer* timer;
+
+		Player* player;
 	};
 
 	
