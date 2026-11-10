@@ -5,6 +5,18 @@
 
 namespace m1
 {
+	enum class GameState {
+		DICE_ROLL,
+		PLAYER_ACTION,
+		ENEMY_ACTION,
+		ROUND_END
+	};
+	enum class CardZone {
+		DECK,
+		HAND,
+		BOARD,
+		GRAVEYARD
+	};
 	enum Element {
 		Omni, Pyro, Cryo, Hydro
 	};
@@ -18,6 +30,13 @@ namespace m1
 		Card();
 		glm::mat3 modelMatrix;
 		Mesh* mesh;
+
+		CardZone currentZone = CardZone::DECK;
+
+		float x, y;
+		float width = 100.0f;
+		float height = 150.0f;
+		bool isDragging = false;
 		void Init();
 
 	};
@@ -28,6 +47,7 @@ namespace m1
 		
 	};
 	class ActionCard : public Card {
+	public:
 		int costDice;
 	};
 	class Timer {
@@ -74,6 +94,7 @@ namespace m1
 		void RenderPlayArena();
 		void RenderDices();
 		void ChangeCardColor(Card* card, glm::vec3 color);
+		void OrganizeHand(std::vector<Card*>& handCards);
 
 	protected:
 		Card* card;
@@ -81,6 +102,8 @@ namespace m1
 		Timer* timer;
 
 		Player* player;
+		std::vector<Card*> playerHand;
+		std::vector<CharacterCard*> playerCharacters;
 	};
 
 	
