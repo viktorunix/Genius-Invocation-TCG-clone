@@ -142,10 +142,11 @@ void Tema1::Init() {
 	Mesh* playArenaMesh = CreatePlayArena("playerPlayArena", glm::vec3(0.5f, 0.1f, 0.1f));
 	meshes[playArenaMesh->GetMeshID()] = playArenaMesh;
 
-	card = new Card();
-	CreateCardMesh(card, "card1", glm::vec3(0.7f,0.0f, 0.0f));
-	card2 = new Card();
-	CreateCardMesh(card2, "card2", glm::vec3(0.0f, 0.9f, 0.5f));
+	Mesh* playerArena = CreatePlayArena("playerPlayArena", glm::vec3(0.15f, 0.25f, 0.35f)); // Deep Blue
+	meshes[playerArena->GetMeshID()] = playerArena;
+
+	Mesh* enemyArena = CreatePlayArena("enemyPlayArena", glm::vec3(0.35f, 0.15f, 0.15f)); // Deep Red
+	meshes[enemyArena->GetMeshID()] = enemyArena;
 
 	timer = new Timer(30.0f);
 	Mesh* timerBg = timer->CreateTimerBar("timer_bg", glm::vec3(0.2f),0.0f);
@@ -170,6 +171,10 @@ void Tema1::Init() {
 	CreateDiceMesh("dice_cryo", glm::vec3(0.773f, 0.984f, 0.984f));
 	CreateDiceMesh("dice_hydro", glm::vec3(0.290f, 0.737f, 0.910f));
 
+	card = new Card();
+	CreateCardMesh(card, "card1", glm::vec3(0.7f, 0.0f, 0.0f));
+	card2 = new Card();
+	CreateCardMesh(card2, "card2", glm::vec3(0.0f, 0.9f, 0.5f)); 
 	player = new Player(5);
 	
 
@@ -209,16 +214,19 @@ void Tema1::FrameStart() {
 }
 
 void Tema1::RenderCardStacks() {
+	glm::ivec2 resolution = window->GetResolution();
+	float leftMargin = resolution.x * 0.05f;
+
 	for (int i = 0; i < 25; i += 5) {
 		card->modelMatrix = glm::mat3(1);
-		card->modelMatrix *= trans2D::Translate(1100 - i, 200 + i);
+		card->modelMatrix *= trans2D::Translate(leftMargin - i, resolution.y * 0.30f + i);
 		card->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
 		card->modelMatrix *= trans2D::Scale(100, 100);
 		RenderMesh2D(card->mesh, shaders["VertexColor"], card->modelMatrix);
 	}
 	for (int i = 0; i < 25; i += 5) {
 		card2->modelMatrix = glm::mat3(1);
-		card2->modelMatrix *= trans2D::Translate(1100 - i, 600 + i);
+		card2->modelMatrix *= trans2D::Translate(leftMargin - i, resolution.y * 0.60f + i);
 		card2->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
 		card2->modelMatrix *= trans2D::Scale(100, 100);
 		RenderMesh2D(card2->mesh, shaders["VertexColor"], card2->modelMatrix);
@@ -244,26 +252,23 @@ void Tema1::RenderTimer(float deltaTimeSeconds) {
 
 void Tema1::RenderPlayArena() {
 	glm::ivec2 resolution = window->GetResolution();
-	float dynamicScaleX = resolution.x * 0.80f;
-	float dynamicScaleY = resolution.y * 0.20f * 2.0f; //cuz the mesh height is 0.5f;
-	float dynamicSpacing = dynamicScaleY * 2.1f;
-	float offsetLeft = resolution.x * 0.1f;
+	float boardWidth = resolution.x * 0.70f; 
+	float boardScaleY = resolution.y * 0.60f; 
 
-	float posX = offsetLeft;
-	float posY = resolution.y * 0.25f;
+	float posX = (resolution.x - boardWidth) / 2.0f;
 
+	float posY_Player = resolution.y * 0.25f;
 	glm::mat3 modelMatrix = glm::mat3(1);
-	modelMatrix *= trans2D::Translate(posX, posY);
-	modelMatrix *= trans2D::Scale(dynamicScaleX, dynamicScaleY);
-
+	modelMatrix *= trans2D::Translate(posX, posY_Player);
+	modelMatrix *= trans2D::Scale(boardWidth, boardScaleY);
 	RenderMesh2D(meshes["playerPlayArena"], shaders["VertexColor"], modelMatrix);
 
-	posY = resolution.y * 0.55f;
+
+	float posY_Enemy = resolution.y * 0.55f; 
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= trans2D::Translate(posX, posY);
-	modelMatrix *= trans2D::Scale(dynamicScaleX, dynamicScaleY);
-	RenderMesh2D(meshes["playerPlayArena"], shaders["VertexColor"], modelMatrix);
-
+	modelMatrix *= trans2D::Translate(posX, posY_Enemy);
+	modelMatrix *= trans2D::Scale(boardWidth, boardScaleY);
+	RenderMesh2D(meshes["enemyPlayArena"], shaders["VertexColor"], modelMatrix);
 }
 
 void Tema1::RenderDices() {
@@ -340,7 +345,7 @@ void Tema1::Update(float deltaTimeSeconds) {
 
 
 	RenderPlayArena();
-	
+	RenderCardStacks();
 	
 }
 
