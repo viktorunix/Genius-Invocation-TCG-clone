@@ -20,6 +20,11 @@ namespace m1
 		Omni, Pyro, Cryo, Hydro
 	};
 
+	enum class ActionType {
+		HEAL,
+		ATTACK_BOOST,
+		ADD_DICE
+	};
 	class Dice {
 	public:
 		Element element;
@@ -46,11 +51,17 @@ namespace m1
 		int hp;
 		Element element;
 
+		glm::vec3 borderColor;
+		Mesh* symbolMesh;
+		std::vector<Mesh*> centerDrawingMeshes;
+
 	};
 
 	class ActionCard : public Card {
 	public:
 		int costDice;
+		ActionType type;
+		Mesh* effectIconMesh;
 	};
 
 	class Timer {

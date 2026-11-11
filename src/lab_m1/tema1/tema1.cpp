@@ -1,11 +1,87 @@
 #include "lab_m1/tema1/tema1.hpp"
 #include "lab_m1/tema1/trans2D.hpp"
+#include "lab_m1/tema1/card_factory.hpp"
 #include <vector>
 #include <iostream>
 
 using namespace std;
 using namespace m1;
 
+void Tema1::RenderCharacters() {
+	for (CharacterCard* c : playerCharacters) {
+		//drawing hp
+		for (int i = 0; i < c->hp; i++) {
+			glm::mat3 hpMatrix = glm::mat3(1);
+			float heartX = c->x + (c->width * 0.1f) + (i % 5) * (c->width * 0.2f);
+			float heartY = c->y + (c->height * 0.08f) + (i / 5) * (c->width * 0.2f);
+			hpMatrix *= trans2D::Translate(heartX, heartY);
+			hpMatrix *= trans2D::Scale(c->width * 0.04f, c->width * 0.04f);
+			RenderMesh2D(meshes["heart"], shaders["VertexColor"], hpMatrix);
+		}
+		//drawing element
+		if (c->symbolMesh) {
+			glm::mat3 symMatrix = glm::mat3(1);
+			symMatrix *= trans2D::Translate(c->x + (c->width * 0.2f), c->y + c->height - (c->height * 0.15f));
+			symMatrix *= trans2D::Scale(c->width * 0.15f, c->width * 0.15f);
+			RenderMesh2D(c->symbolMesh, shaders["VertexColor"], symMatrix);
+		}
+
+		//drawing the main drawing
+		for (Mesh* drawingPart : c->centerDrawingMeshes) {
+			glm::mat3 drawMatrix = glm::mat3(1);
+			drawMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+			drawMatrix *= trans2D::Scale(c->width * 0.5f, c->width * 0.5f);
+			RenderMesh2D(drawingPart, shaders["VertexColor"], drawMatrix);
+		}
+		//drawing the background of the card
+		glm::mat3 bgMatrix = glm::mat3(1);
+		bgMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+		bgMatrix *= trans2D::Rotate(glm::radians(90.0f));
+		bgMatrix *= trans2D::Scale(c->height * 0.95f, c->width * 0.95f);
+		RenderMesh2D(meshes["card_bg"], shaders["VertexColor"], bgMatrix);
+
+
+		//drawing the contour
+		glm::mat3 borderMatrix = glm::mat3(1);
+		borderMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+		borderMatrix *= trans2D::Rotate(glm::radians(90.0f));
+		borderMatrix *= trans2D::Scale(c->height * 1.05f, c->width * 1.05f);
+		RenderMesh2D(c->mesh, shaders["VertexColor"], borderMatrix);
+	
+		
+		
+
+		
+	}
+}
+void Tema1::RenderHand() {
+	for (Card* baseCard : playerHand) {
+		ActionCard* c = static_cast<ActionCard*>(baseCard);
+		for (int i = 0; i < c->costDice; i++) {
+			glm::mat3 costMatrix = glm::mat3(1);
+			float hexX = c->x + (c->width * 0.2f);
+			float hexY = c->y + c->height - (c->height * 0.15f) - (i * (c->width * 0.22f));
+			costMatrix *= trans2D::Translate(hexX, hexY);
+			costMatrix *= trans2D::Scale(c->width * 0.1f, c->width * 0.1f);
+			RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], costMatrix);
+		}
+
+		if (c->effectIconMesh) {
+			glm::mat3 iconMatrix = glm::mat3(1);
+			iconMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+			iconMatrix *= trans2D::Scale(c->width * 0.4f, c->width * 0.4f);
+			RenderMesh2D(c->effectIconMesh, shaders["VertexColor"], iconMatrix);
+
+		}
+		glm::mat3 modelMatrix = glm::mat3(1);
+		modelMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+		modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
+		modelMatrix *= trans2D::Scale(c->height, c->width);
+		RenderMesh2D(c->mesh, shaders["VertexColor"], modelMatrix);
+
+		
+	}
+}
 void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	glm::ivec2 res = window->GetResolution();
 	float cardWidth = 100.0f;
@@ -170,36 +246,51 @@ void Tema1::Init() {
 	CreateDiceMesh("dice_cryo", glm::vec3(0.773f, 0.984f, 0.984f));
 	CreateDiceMesh("dice_hydro", glm::vec3(0.290f, 0.737f, 0.910f));
 
+
 	card = new Card();
 	CreateCardMesh(card, "card1", glm::vec3(0.7f, 0.0f, 0.0f));
 	card2 = new Card();
 	CreateCardMesh(card2, "card2", glm::vec3(0.0f, 0.9f, 0.5f)); 
 	player = new Player(5);
+	Mesh* cardBg = new Mesh("card_bg");
+	std::vector<VertexFormat> bgVertices = {
+		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f)), // Gri închis
+		VertexFormat(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f)),
+		VertexFormat(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f)),
+		VertexFormat(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f))
+	};
+	std::vector<unsigned int> bgIndices = { 0, 1, 2, 0, 2, 3 };
+	cardBg->InitFromData(bgVertices, bgIndices);
+	meshes["card_bg"] = cardBg;
 	
+	CardFactory factory(meshes);
+
+	
+	playerCharacters.push_back(factory.CreatePyroCharacter());
+	playerCharacters.push_back(factory.CreateHydroCharacter());
+	playerCharacters.push_back(factory.CreateCryoCharacter());
+
 
 	for (int i = 0; i < 3; i++) {
-		CharacterCard* charCard = new CharacterCard();
-		charCard->currentZone = CardZone::BOARD;
-		charCard->mesh = meshes["card2"];
-		charCard->width = dynamicWidth;
-		charCard->height = dynamicHeight;
-		charCard->x = startX + (i * slotSpacing);
-
-		charCard->y = (i == 0) ? boardY + (dynamicHeight * 0.2f) : boardY; // Active character offset
-		charCard->hp = 10;
-
-		playerCharacters.push_back(charCard);
+		playerCharacters[i]->currentZone = CardZone::BOARD;
+		playerCharacters[i]->width = dynamicWidth;
+		playerCharacters[i]->height = dynamicHeight;
+		playerCharacters[i]->x = startX + (i * slotSpacing);
+		playerCharacters[i]->y = (i == 0) ? boardY + (dynamicHeight * 0.2f) : boardY; //active character offset
 	}
 
-	
-	for (int i = 0; i < 5; i++) {
-		ActionCard* actionCard = new ActionCard();
-		actionCard->currentZone = CardZone::HAND;
-		actionCard->mesh = meshes["card1"]; 
-		actionCard->costDice = 3;
-		playerHand.push_back(actionCard);
-	}
 
+	playerHand.push_back(factory.CreateHealCard());
+	playerHand.push_back(factory.CreateAttackBoostCard());
+	playerHand.push_back(factory.CreateAddDiceCard());
+	playerHand.push_back(factory.CreateHealCard());
+	playerHand.push_back(factory.CreateAttackBoostCard());
+
+
+	for (Card* c : playerHand) {
+		c->width = dynamicWidth;
+		c->height = dynamicHeight;
+	}
 	OrganizeHand(playerHand);
 }
 
@@ -301,45 +392,9 @@ void Tema1::RenderDices() {
 }
 void Tema1::Update(float deltaTimeSeconds) {
 
-	glm::ivec2 resolution = window->GetResolution();
-	glm::mat3 modelMatrix = glm::mat3(1);
-
-	for (CharacterCard* c : playerCharacters) {
-		for (int i = 0; i < c->hp; i++) {
-			glm::mat3 hpMatrix = glm::mat3(1);
-			float heartX = c->x + (c->width * 0.1f) + (i % 5) * (c->width * 0.2f);
-			float heartY = c->y + (c->height * 0.08f) + (i / 5) * (c->width * 0.2f);
-
-			hpMatrix *= trans2D::Translate(heartX, heartY);
-			hpMatrix *= trans2D::Scale(c->width * 0.04f, c->width * 0.04f);
-			RenderMesh2D(meshes["heart"], shaders["VertexColor"], hpMatrix);
-		}
-
-		glm::mat3 modelMatrix = glm::mat3(1);
-		modelMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
-		modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		modelMatrix *= trans2D::Scale(c->width, c->width); 
-		RenderMesh2D(c->mesh, shaders["VertexColor"], modelMatrix);
-		
-	}
-	for (Card* baseCard : playerHand) {
-		ActionCard* c = static_cast<ActionCard*>(baseCard);
-		for (int i = 0; i < c->costDice; i++) {
-			glm::mat3 costMatrix = glm::mat3(1);
-			float hexX = c->x + (c->width * 0.2f);
-			float hexY = c->y + c->height - (c->height * 0.15f) - (i * (c->width * 0.22f));
-
-			costMatrix *= trans2D::Translate(hexX, hexY);
-			costMatrix *= trans2D::Scale(c->width * 0.1f, c->width * 0.1f);
-			RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], costMatrix);
-		}
-
-		glm::mat3 modelMatrix = glm::mat3(1);
-		modelMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
-		modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		modelMatrix *= trans2D::Scale(c->width, c->width);
-		RenderMesh2D(c->mesh, shaders["VertexColor"], modelMatrix);
-	}
+	RenderCharacters();
+	RenderHand();
+	
 	RenderDices();
 
 

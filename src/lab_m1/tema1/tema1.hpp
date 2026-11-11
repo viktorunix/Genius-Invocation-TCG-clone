@@ -34,6 +34,8 @@ namespace m1
 		void RenderTimer(float deltaTimeSeconds);
 		void RenderPlayArena();
 		void RenderDices();
+		void RenderHand();
+		void RenderCharacters();
 		void ChangeCardColor(Card* card, glm::vec3 color);
 		void OrganizeHand(std::vector<Card*>& handCards);
 
