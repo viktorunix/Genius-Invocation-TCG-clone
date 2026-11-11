@@ -1,71 +1,12 @@
 #pragma once
 
 #include "components/simple_scene.h"
+#include "lab_m1/tema1/card.hpp"
 #include <vector>
 
 namespace m1
 {
-	enum class GameState {
-		DICE_ROLL,
-		PLAYER_ACTION,
-		ENEMY_ACTION,
-		ROUND_END
-	};
-	enum class CardZone {
-		DECK,
-		HAND,
-		BOARD,
-		GRAVEYARD
-	};
-	enum Element {
-		Omni, Pyro, Cryo, Hydro
-	};
-	class Dice {
-	public:
-		Element element;
-		Mesh* mesh;
-	};
-	class Card {
-	public:
-		Card();
-		glm::mat3 modelMatrix;
-		Mesh* mesh;
-
-		CardZone currentZone = CardZone::DECK;
-
-		float x, y;
-		float width = 100.0f;
-		float height = 150.0f;
-		bool isDragging = false;
-		void Init();
-
-	};
-	class CharacterCard : public Card {
-	public:
-		int hp;
-		Element element;
-		
-	};
-	class ActionCard : public Card {
-	public:
-		int costDice;
-	};
-	class Timer {
-	public:
-		float maxTime;
-		float currentTime;
-		Timer(float maxTime);
-		glm::mat3 modelMatrix;
-		Mesh* CreateTimerBar(const char* name, glm::vec3 color, float z);
-
-		
-	};
-
-	class Player {
-	public:
-		std::vector<Dice*> dices;
-		Player(int nrDices);
-	};
+	
 	class Tema1 : public gfxc::SimpleScene
 	{
 	public:
@@ -104,6 +45,10 @@ namespace m1
 		Player* player;
 		std::vector<Card*> playerHand;
 		std::vector<CharacterCard*> playerCharacters;
+
+		Card* selectedCard = nullptr;
+		float dragOffsetX = 0;
+		float dragOffsetY = 0;
 	};
 
 	

@@ -5,8 +5,7 @@
 
 using namespace std;
 using namespace m1;
-Card* selectedCard = nullptr;
-float dragOffsetX = 0, dragOffsetY = 0;
+
 void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	glm::ivec2 res = window->GetResolution();
 	float cardWidth = 100.0f;
@@ -403,7 +402,7 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 		if (mouseX >= arenaMinX && mouseX <= arenaMaxX &&
 			sceneY >= arenaMinY && sceneY <= arenaMaxY) {
 			//valid drop 
-			selectedCard->currentZone = CardZone::GRAVEYARD;
+			selectedCard->currentZone = CardZone::USED;
 			playerHand.erase(std::remove(playerHand.begin(), playerHand.end(), selectedCard), playerHand.end());
 			int cardsOnBoard = 0;
 			for (Card* c : playerHand) {
