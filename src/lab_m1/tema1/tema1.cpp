@@ -251,6 +251,15 @@ void Tema1::Init() {
 	CreateCardMesh(card, "card1", glm::vec3(0.7f, 0.0f, 0.0f));
 	card2 = new Card();
 	CreateCardMesh(card2, "card2", glm::vec3(0.0f, 0.9f, 0.5f)); 
+	
+	Card* cPyro = new Card();
+	CreateCardMesh(cPyro, "card_pyro", glm::vec3(0.9f, 0.2f, 0.2f));
+
+	Card* cHydro = new Card();
+	CreateCardMesh(cHydro, "card_hydro", glm::vec3(0.1f, 0.3f, 0.8f)); 
+
+	Card* cCryo = new Card();
+	CreateCardMesh(cCryo, "card_cryo", glm::vec3(0.5f, 0.8f, 0.9f));
 	player = new Player(5);
 	Mesh* cardBg = new Mesh("card_bg");
 	std::vector<VertexFormat> bgVertices = {

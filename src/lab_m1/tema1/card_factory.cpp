@@ -199,7 +199,7 @@ CharacterCard* CardFactory::CreatePyroCharacter() {
 	}
 
 	CharacterCard* card = new CharacterCard();
-	card->mesh = meshes["card1"];
+	card->mesh = meshes["card_pyro"];
 	card->borderColor = glm::vec3(0.9f, 0.2f, 0.2f);
 	card->element = Pyro;
 	card->hp = 10;
@@ -216,7 +216,7 @@ CharacterCard* CardFactory::CreateHydroCharacter() {
 		meshes["draw_knight"] = CreateKnightDrawing("draw_knight");
 	}
 	CharacterCard* card = new CharacterCard();
-	card->mesh = meshes["card1"];
+	card->mesh = meshes["card_hydro"];
 	card->borderColor = glm::vec3(0.1f, 0.3f, 0.8f);
 	card->hp = 10;
 
@@ -232,7 +232,7 @@ CharacterCard* CardFactory::CreateCryoCharacter() {
 	}
 
 	CharacterCard* card = new CharacterCard();
-	card->mesh = meshes["card1"];
+	card->mesh = meshes["card_cryo"];
 	card->borderColor = glm::vec3(0.5f, 0.8f, 0.9f); 
 	card->element = Cryo;
 	card->hp = 10;
