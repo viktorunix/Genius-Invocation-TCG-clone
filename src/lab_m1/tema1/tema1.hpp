@@ -35,18 +35,17 @@ namespace m1
 		void RenderPlayArena();
 		void RenderDices();
 		void RenderHand();
-		void RenderCharacters();
+		void RenderCharacters(Player* p);
 		void ChangeCardColor(Card* card, glm::vec3 color);
 		void OrganizeHand(std::vector<Card*>& handCards);
-
+		void OrganizeBoard();
 	protected:
 		Card* card;
 		Card* card2;
 		Timer* timer;
 
 		Player* player;
-		std::vector<Card*> playerHand;
-		std::vector<CharacterCard*> playerCharacters;
+		Player* enemy;
 
 		Card* selectedCard = nullptr;
 		float dragOffsetX = 0;

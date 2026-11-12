@@ -50,7 +50,7 @@ namespace m1
 	public:
 		int hp;
 		Element element;
-
+		bool isActive = false;
 		glm::vec3 borderColor;
 		Mesh* symbolMesh;
 		std::vector<Mesh*> centerDrawingMeshes;
@@ -77,6 +77,8 @@ namespace m1
 	class Player {
 	public:
 		std::vector<Dice*> dices;
+		std::vector<Card*> hand;
+		std::vector<CharacterCard*> characters;
 		Player(int nrDices);
 	};
 }

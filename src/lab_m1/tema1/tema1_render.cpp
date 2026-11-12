@@ -4,8 +4,8 @@
 using namespace std;
 using namespace m1;
 
-void Tema1::RenderCharacters() {
-	for (CharacterCard* c : playerCharacters) {
+void Tema1::RenderCharacters(Player* p) {
+	for (CharacterCard* c : p->characters) {
 		//drawing hp
 		for (int i = 0; i < c->hp; i++) {
 			glm::mat3 hpMatrix = glm::mat3(1);
@@ -52,7 +52,7 @@ void Tema1::RenderCharacters() {
 	}
 }
 void Tema1::RenderHand() {
-	for (Card* baseCard : playerHand) {
+	for (Card* baseCard : player->hand) {
 		ActionCard* c = static_cast<ActionCard*>(baseCard);
 		for (int i = 0; i < c->costDice; i++) {
 			glm::mat3 costMatrix = glm::mat3(1);

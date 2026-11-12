@@ -7,7 +7,33 @@
 using namespace std;
 using namespace m1;
 
+void Tema1::OrganizeBoard() {
+	glm::ivec2 res = window->GetResolution();
+	float dynamicWidth = res.x * 0.08f;
+	float dynamicHeight = dynamicWidth * 1.5f;
+	float slotSpacing = dynamicWidth * 1.2f;
+	float boardCenterX = res.x / 2.0f;
+	float startX = boardCenterX - slotSpacing - (dynamicWidth / 2.0f);
 
+
+	float playerBoardY = (res.y * 0.25f) + (res.y * 0.05f);
+	for (size_t i = 0; i < player->characters.size(); i++) {
+		player->characters[i]->width = dynamicWidth;
+		player->characters[i]->height = dynamicHeight;
+		player->characters[i]->x = startX + (i * slotSpacing);
+		player->characters[i]->y = player->characters[i]->isActive ? playerBoardY + (dynamicHeight * 0.2f) : playerBoardY;
+	}
+
+	
+	float enemyBoardY = (res.y * 0.55f) + (res.y * 0.05f);
+	for (size_t i = 0; i < enemy->characters.size(); i++) {
+		enemy->characters[i]->width = dynamicWidth;
+		enemy->characters[i]->height = dynamicHeight;
+		enemy->characters[i]->x = startX + (i * slotSpacing);
+		
+		enemy->characters[i]->y = enemy->characters[i]->isActive ? enemyBoardY - (dynamicHeight * 0.2f) : enemyBoardY;
+	}
+}
 void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	glm::ivec2 res = window->GetResolution();
 	float cardWidth = 100.0f;
@@ -201,32 +227,36 @@ void Tema1::Init() {
 	CardFactory factory(meshes);
 
 	
-	playerCharacters.push_back(factory.CreatePyroCharacter());
-	playerCharacters.push_back(factory.CreateHydroCharacter());
-	playerCharacters.push_back(factory.CreateCryoCharacter());
+	player->characters.push_back(factory.CreatePyroCharacter());
+	player->characters.push_back(factory.CreateHydroCharacter());
+	player->characters.push_back(factory.CreateCryoCharacter());
+	player->characters[0]->isActive = true;
+
+	
 
 
-	for (int i = 0; i < 3; i++) {
-		playerCharacters[i]->currentZone = CardZone::BOARD;
-		playerCharacters[i]->width = dynamicWidth;
-		playerCharacters[i]->height = dynamicHeight;
-		playerCharacters[i]->x = startX + (i * slotSpacing);
-		playerCharacters[i]->y = (i == 0) ? boardY + (dynamicHeight * 0.2f) : boardY; //active character offset
-	}
+	player->hand.push_back(factory.CreateHealCard());
+	player->hand.push_back(factory.CreateAttackBoostCard());
+	player->hand.push_back(factory.CreateAddDiceCard());
+	player->hand.push_back(factory.CreateHealCard());
+	player->hand.push_back(factory.CreateAttackBoostCard());
 
 
-	playerHand.push_back(factory.CreateHealCard());
-	playerHand.push_back(factory.CreateAttackBoostCard());
-	playerHand.push_back(factory.CreateAddDiceCard());
-	playerHand.push_back(factory.CreateHealCard());
-	playerHand.push_back(factory.CreateAttackBoostCard());
-
-
-	for (Card* c : playerHand) {
+	for (Card* c : player->hand) {
 		c->width = dynamicWidth;
 		c->height = dynamicHeight;
 	}
-	OrganizeHand(playerHand);
+	OrganizeHand(player->hand);
+
+
+	enemy = new Player(5);
+	enemy->characters.push_back(factory.CreateHydroCharacter());
+	enemy->characters.push_back(factory.CreatePyroCharacter());
+	enemy->characters.push_back(factory.CreateCryoCharacter());
+	enemy->characters[0]->isActive = true;
+	float enemyBoardY = (resolution.y * 0.55f) + (resolution.y * 0.05f);
+
+	OrganizeBoard();
 }
 
 void Tema1::FrameStart() {
@@ -241,7 +271,8 @@ void Tema1::FrameStart() {
 
 void Tema1::Update(float deltaTimeSeconds) {
 
-	RenderCharacters();
+	RenderCharacters(player);
+	RenderCharacters(enemy);
 	RenderHand();
 	
 	RenderDices();
@@ -279,8 +310,84 @@ void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY) {
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 	glm::ivec2 res = window->GetResolution();
 	int sceneY = res.y - mouseY; //matching y to camera;
+	if (player->characters.empty() || enemy->characters.empty()) {
+		cout << "Game Ended" << endl;
+		return;
+	}
+
+	CharacterCard* activePlayer = nullptr;
+	for (CharacterCard* c : player->characters) {
+		if (c->isActive) activePlayer = c;
+	}
+	CharacterCard* activeEnemy = nullptr;
+	for (CharacterCard* c : enemy->characters) {
+		if (c->isActive) activeEnemy = c;
+	}
+	if (!activePlayer || !activeEnemy) return;
+
+	//combat input
+	if (mouseX >= activeEnemy->x && mouseX <= activeEnemy->x + activeEnemy->width &&
+		sceneY >= activeEnemy->y && sceneY <= activeEnemy->y + activeEnemy->height) {
+
+		if (button == GLFW_MOUSE_BUTTON_2) {
+			if (player->dices.size() >= 1) {
+				player->dices.pop_back();
+				activeEnemy->hp -= 2;
+				cout << "COMBAT: " << activePlayer->element << " normal attacked (2DMG)" << endl;
+
+			}
+			else {
+				cout << "COMBAT : Not enough dices for attacking" << endl;
+			}
+		}
+		else if (button == GLFW_MOUSE_BUTTON_1) {
+			if (player->dices.size() >= 3) {
+				player->dices.pop_back();
+				player->dices.pop_back();
+				player->dices.pop_back();
+				activeEnemy->hp -= 3;
+				cout << "COMBAT: " << activePlayer->element << " element attack" << endl;
+			}
+			else {
+				cout << "COMBAT: " << "Not enough dices for elemental attack" << endl;
+
+			}
+		}
+		if (activeEnemy->hp <= 0) {
+			cout << "COMBAT: Enemy card down" << endl;
+			enemy->characters.erase(std::remove(enemy->characters.begin(), enemy->characters.end(), activeEnemy), enemy->characters.end());
+			if (!enemy->characters.empty()) {
+				enemy->characters[0]->isActive = true;
+			}
+			OrganizeBoard();
+		}
+		return;
+	}
+	//input on active characters
 	if (button == GLFW_MOUSE_BUTTON_2) {
-		for (auto it = playerHand.rbegin(); it != playerHand.rend(); ++it) {
+		for (size_t i = 0; i < player->characters.size(); i++) {
+			CharacterCard* c = player->characters[i];
+			if (!c->isActive && mouseX >= c->x && mouseX <= c->x + c->width && sceneY >= c->y && sceneY <= c->y + c->height) {
+				
+				//costs 1 dice to change characters
+				if (player->dices.size() >= 1) {
+					player->dices.pop_back();
+
+					activePlayer->isActive = false;
+					c->isActive = true;
+					cout << "SYSTEM: " << "you changed active character" << endl;
+					OrganizeBoard();
+				}
+				else {
+					cout << "SYSTEM: you need at least 1 dice to change characters" << endl;
+				}
+				return;
+			}
+		}
+	}
+	//drag and drop input
+	if (button == GLFW_MOUSE_BUTTON_2) {
+		for (auto it = player->hand.rbegin(); it != player->hand.rend(); ++it) {
 			Card* c = *it;
 			if (c->currentZone == CardZone::HAND && mouseX >= c->x && mouseX <= c->x + c->width && sceneY >= c->y && sceneY <= c->y + c->height) {
 				c->isDragging = true;
@@ -307,9 +414,9 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 			sceneY >= arenaMinY && sceneY <= arenaMaxY) {
 			//valid drop 
 			selectedCard->currentZone = CardZone::USED;
-			playerHand.erase(std::remove(playerHand.begin(), playerHand.end(), selectedCard), playerHand.end());
+			player->hand.erase(std::remove(player->hand.begin(), player->hand.end(), selectedCard), player->hand.end());
 			int cardsOnBoard = 0;
-			for (Card* c : playerHand) {
+			for (Card* c : player->hand) {
 				if (c->currentZone == CardZone::BOARD && c != selectedCard) {
 					cardsOnBoard++;
 				}
@@ -324,7 +431,7 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 		}
 		selectedCard->isDragging = false;
 		selectedCard = nullptr;
-		OrganizeHand(playerHand);
+		OrganizeHand(player->hand);
 	}
 }
 void Tema1::OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) {
@@ -336,23 +443,7 @@ void Tema1::OnWindowResize(int width, int height) {
 	camera->SetOrthographic(0, (float)width, 0, (float)height, 0.01f, 400);
 	camera->Update();
 
-	OrganizeHand(playerHand);
+	OrganizeHand(player->hand);
+	OrganizeBoard();
 
-
-	float dynamicWidth = width * 0.08f;
-	float dynamicHeight = dynamicWidth * 1.5f;
-
-	float slotSpacing = dynamicWidth * 1.2f;
-	float boardCenterX = width / 2.0f;
-	float startX = boardCenterX - slotSpacing - (dynamicWidth / 2.0f);
-	float boardY = (height * 0.25f) + (height * 0.05f);
-
-	for (size_t i = 0; i < playerCharacters.size(); i++) {
-		CharacterCard* charCard = playerCharacters[i];
-		charCard->width = dynamicWidth;
-		charCard->height = dynamicHeight;
-
-		charCard->x = startX + (i * slotSpacing);
-		charCard->y = (i == 0) ? boardY + (dynamicHeight * 0.2f) : boardY; 
-	}
 }
