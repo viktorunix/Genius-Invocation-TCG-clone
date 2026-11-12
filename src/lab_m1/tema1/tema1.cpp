@@ -413,22 +413,58 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 		if (mouseX >= arenaMinX && mouseX <= arenaMaxX &&
 			sceneY >= arenaMinY && sceneY <= arenaMaxY) {
 			//valid drop 
-			selectedCard->currentZone = CardZone::USED;
-			player->hand.erase(std::remove(player->hand.begin(), player->hand.end(), selectedCard), player->hand.end());
-			int cardsOnBoard = 0;
-			for (Card* c : player->hand) {
-				if (c->currentZone == CardZone::BOARD && c != selectedCard) {
-					cardsOnBoard++;
+			ActionCard* actionCard = static_cast<ActionCard*>(selectedCard);
+			if (actionCard != nullptr) {
+				if (player->dices.size() >= actionCard->costDice) {
+					for (int i = 0; i < actionCard->costDice; i++) {
+						player->dices.pop_back();
+					}
+					switch (actionCard->type) {
+					case ActionType::HEAL: {
+						CharacterCard* activePlayer = nullptr;
+						for (CharacterCard* c : player->characters) {
+							if (c->isActive) activePlayer = c;
+						}
+
+						if (activePlayer != nullptr) {
+							activePlayer->hp += 3;
+							if (activePlayer->hp > 10) activePlayer->hp = 10;
+							cout << "ACTION: used Heal" << endl;
+						}
+						break;
+					}
+					case ActionType::ADD_DICE: {
+						for (int i = 0; i < 3; i++) {
+							Dice* d = new Dice();
+							d->element = Omni;
+							player->dices.push_back(d);
+						}
+						cout << "ACTION: used ADD DICE" << endl;
+						break;
+					}
+					case ActionType::ATTACK_BOOST: {
+						cout << "ACTION: used ATTACK BOOST" << endl;
+						break;
+					}
+
+					}
+					selectedCard->currentZone = CardZone::USED;
+					player->hand.erase(std::remove(player->hand.begin(), player->hand.end(), selectedCard), player->hand.end());
 				}
-
-				if (cardsOnBoard < 3) {
-
+				else {
+					cout << "SYSTEM: not enough dices" << endl;
+					selectedCard->currentZone = CardZone::HAND;
 				}
 			}
-			selectedCard->currentZone = CardZone::BOARD;
+			else {
 
-			//TODO: Snapping the active card slot
+				selectedCard->currentZone = CardZone::HAND;
+			}
 		}
+		else {
+			selectedCard->currentZone = CardZone::HAND;
+		}
+			
 		selectedCard->isDragging = false;
 		selectedCard = nullptr;
 		OrganizeHand(player->hand);
