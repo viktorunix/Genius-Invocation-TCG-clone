@@ -6,7 +6,57 @@
 
 using namespace std;
 using namespace m1;
+void Tema1::EnemyTurn() {
+	cout << "System: Enemy's turn.." << endl;
 
+	//finding active character
+	CharacterCard* activePlayer = nullptr;
+	for (CharacterCard* c : player->characters) {
+		if (c->isActive) activePlayer = c;
+	}
+
+	//enemy's very smart, advanced and sofisticated AI
+	if (activePlayer != nullptr) {
+		activePlayer->hp -= 2;
+		cout << "Enemy: attack 2HP" << endl;
+
+		//veryifing if player's active character is dead
+
+		if (activePlayer->hp <= 0) {
+			cout << "Combat: Active character down" << endl;
+			player->characters.erase(std::remove(player->characters.begin(), player->characters.end(), activePlayer), player->characters.end());
+
+			//bringing the next character in active state
+			if (!player->characters.empty()) {
+				player->characters[0]->isActive = true;
+
+			}
+			else {
+				cout << "GAME OVER" << endl;
+			}
+			OrganizeBoard();
+
+		}
+	}
+
+	//end of round
+	currentState = GameState::ROUND_END;
+	cout << "System: Round ended" << endl;
+	for (Dice* d : player->dices) {
+		delete d;
+
+	}
+	player->dices.clear();
+
+	for (int i = 0; i < 10; i++) {
+		Dice* d = new Dice();
+		d->element = Omni;
+		player->dices.push_back(d);
+	}
+
+	currentState = GameState::PLAYER_ACTION;
+	cout << "System: your turn" << endl;
+}
 void Tema1::OrganizeBoard() {
 	glm::ivec2 res = window->GetResolution();
 	float dynamicWidth = res.x * 0.08f;
@@ -257,6 +307,11 @@ void Tema1::Init() {
 	float enemyBoardY = (resolution.y * 0.55f) + (resolution.y * 0.05f);
 
 	OrganizeBoard();
+
+	Mesh* btnEnd = CreatePlayArena("btn_end", glm::vec3(0.8f, 0.6f, 0.2f));
+	meshes["btn_end"] = btnEnd;
+	currentState = GameState::PLAYER_ACTION;
+
 }
 
 void Tema1::FrameStart() {
@@ -281,6 +336,16 @@ void Tema1::Update(float deltaTimeSeconds) {
 	RenderPlayArena();
 	RenderCardStacks();
 	
+	glm::ivec2 res = window->GetResolution();
+	glm::mat3 btnMat(1);
+	float btnX = res.x * 0.85f;
+	float btnY = res.y * 0.45f;
+	float btnW = res.x * 0.1f;
+	float btnH = res.y * 0.1f;
+
+	btnMat *= trans2D::Translate(btnX, btnY);
+	btnMat *= trans2D::Scale(btnW, btnH);
+	RenderMesh2D(meshes["btn_end"], shaders["VertexColor"], btnMat);
 }
 
 void Tema1::FrameEnd() {
@@ -310,6 +375,22 @@ void Tema1::OnMouseMove(int mouseX, int mouseY, int deltaX, int deltaY) {
 void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 	glm::ivec2 res = window->GetResolution();
 	int sceneY = res.y - mouseY; //matching y to camera;
+	
+	//end button input
+	float btnX = res.x * 0.85f;
+	float btnY = res.y * 0.45f;
+	float btnW = res.x * 0.1f;
+	float btnH = res.y * 0.05f;
+	if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= btnY && sceneY <= btnY + btnH) {
+		if (currentState == GameState::PLAYER_ACTION) {
+			cout << "System: end of round" << endl;
+			currentState = GameState::ENEMY_ACTION;
+			EnemyTurn(); // enemy's turn ig
+		}
+		return;
+	}
+	//verifying if its the player's turn
+	if (currentState != GameState::PLAYER_ACTION) return;
 	if (player->characters.empty() || enemy->characters.empty()) {
 		cout << "Game Ended" << endl;
 		return;

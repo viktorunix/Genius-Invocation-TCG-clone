@@ -39,6 +39,8 @@ namespace m1
 		void ChangeCardColor(Card* card, glm::vec3 color);
 		void OrganizeHand(std::vector<Card*>& handCards);
 		void OrganizeBoard();
+
+		void EnemyTurn();
 	protected:
 		Card* card;
 		Card* card2;
@@ -50,6 +52,8 @@ namespace m1
 		Card* selectedCard = nullptr;
 		float dragOffsetX = 0;
 		float dragOffsetY = 0;
+
+		GameState currentState = GameState::PLAYER_ACTION;
 	};
 
 	
