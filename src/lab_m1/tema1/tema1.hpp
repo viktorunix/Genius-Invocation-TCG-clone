@@ -54,6 +54,10 @@ namespace m1
 		float dragOffsetY = 0;
 
 		GameState currentState = GameState::PLAYER_ACTION;
+		bool playerPassed = false;
+		bool enemyPassed = false;
+		bool actionSuccessful = false;
+		void StartNewRound();
 	};
 
 	
