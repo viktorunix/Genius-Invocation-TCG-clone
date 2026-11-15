@@ -255,10 +255,28 @@ void Tema1::Init() {
 
 	OrganizeBoard();
 
-	Mesh* btnEnd = CreatePlayArena("btn_end", glm::vec3(0.8f, 0.6f, 0.2f));
-	meshes["btn_end"] = btnEnd;
 	currentState = GameState::PLAYER_ACTION;
 
+
+	Mesh* btnEnd = CreatePlayArena("btn_end", glm::vec3(0.8f, 0.6f, 0.2f));
+	meshes["btn_end"] = btnEnd;
+
+	Mesh* btnNormal = CreatePlayArena("btn_normal", glm::vec3(0.8f, 0.3f, 0.3f));
+	meshes["btn_normal"] = btnNormal;
+
+	Mesh* btnSkill = CreatePlayArena("btn_skill", glm::vec3(0.6f, 0.1f, 0.1f));
+	meshes["btn_skill"] = btnSkill;
+
+	Mesh* deadOverlay = new Mesh("dead_overlay");
+	std::vector<VertexFormat> ovVertices = {
+		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.15f, 0.15f, 0.15f)),
+		VertexFormat(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.15f, 0.15f, 0.15f)),
+		VertexFormat(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.15f, 0.15f, 0.15f)),
+		VertexFormat(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.15f, 0.15f, 0.15f))
+	};
+	std::vector<unsigned int> ovIndices = { 0, 1, 2, 0, 2, 3 };
+	deadOverlay->InitFromData(ovVertices, ovIndices);
+	meshes["dead_overlay"] = deadOverlay;
 }
 
 void Tema1::FrameStart() {
@@ -272,6 +290,7 @@ void Tema1::FrameStart() {
 
 
 void Tema1::Update(float deltaTimeSeconds) {
+	
 	//card drawing animation
 	float animSpeed = 5.0f;
 	for (Card* c : player->hand) {
@@ -297,6 +316,7 @@ void Tema1::Update(float deltaTimeSeconds) {
 	RenderPlayArena();
 	RenderCardStacks();
 	
+	//buttons logic
 	glm::ivec2 res = window->GetResolution();
 	glm::mat3 btnMat(1);
 	float btnX = res.x * 0.85f;
@@ -307,6 +327,19 @@ void Tema1::Update(float deltaTimeSeconds) {
 	btnMat *= trans2D::Translate(btnX, btnY);
 	btnMat *= trans2D::Scale(btnW, btnH);
 	RenderMesh2D(meshes["btn_end"], shaders["VertexColor"], btnMat);
+
+	glm::mat3 matNormal(1);
+	float naY = res.y * 0.55f;
+	matNormal *= trans2D::Translate(btnX, naY);
+	matNormal *= trans2D::Scale(btnW, btnH);
+	RenderMesh2D(meshes["btn_normal"], shaders["VertexColor"], matNormal);
+
+	glm::mat3 matSkill(1);
+	float skY = res.y * 0.65f;
+	matSkill *= trans2D::Translate(btnX, skY);
+	matSkill *= trans2D::Scale(btnW, btnH);
+	RenderMesh2D(meshes["btn_skill"], shaders["VertexColor"], matSkill);
+
 }
 
 void Tema1::FrameEnd() {
@@ -369,53 +402,58 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 	if (!activePlayer || !activeEnemy) return;
 
 	//combat input
-	if (mouseX >= activeEnemy->x && mouseX <= activeEnemy->x + activeEnemy->width &&
-		sceneY >= activeEnemy->y && sceneY <= activeEnemy->y + activeEnemy->height) {
+	float naY = res.y * 0.55f;
+	float skY = res.y * 0.65f;
+	bool actionSuccessful = false;
 
-		if (button == GLFW_MOUSE_BUTTON_2) {
-			if (player->dices.size() >= 1) {
-				player->dices.pop_back();
-				activeEnemy->hp -= 2;
-				cout << "COMBAT: " << activePlayer->element << " normal attacked (2DMG)" << endl;
-				actionSuccessful = true;
-			}
-			else {
-				cout << "COMBAT : Not enough dices for attacking" << endl;
-			}
+	if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= naY && sceneY <= naY + btnH) {
+		if (player->dices.size() >= 1) {
+			player->dices.pop_back();
+			activeEnemy->hp -= 2;
+			cout << "COMBAT: " << activePlayer->element << " normal attacked (2 DMG)" << endl;
+			actionSuccessful = true;
 		}
-		else if (button == GLFW_MOUSE_BUTTON_1) {
-			if (player->dices.size() >= 3) {
-				player->dices.pop_back();
-				player->dices.pop_back();
-				player->dices.pop_back();
-				activeEnemy->hp -= 3;
-				actionSuccessful = true;
-				cout << "COMBAT: " << activePlayer->element << " element attack" << endl;
-			}
-			else {
-				cout << "COMBAT: " << "Not enough dices for elemental attack" << endl;
+		else {
+			cout << "COMBAT: Not enough dices for attacking!" << endl;
+		}
+	}
 
-			}
+	else if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= skY && sceneY <= skY + btnH) {
+		if (player->dices.size() >= 3) {
+			player->dices.pop_back(); player->dices.pop_back(); player->dices.pop_back(); 
+			activeEnemy->hp -= 3;
+			cout << "COMBAT: " << activePlayer->element << " used elemental skill (3 DMG)" << endl;
+			actionSuccessful = true;
 		}
-		if (actionSuccessful) {
-			if (activeEnemy->hp <= 0) {
-				cout << "COMBAT: Enemy card down" << endl;
-				enemy->characters.erase(std::remove(enemy->characters.begin(), enemy->characters.end(), activeEnemy), enemy->characters.end());
-				if (!enemy->characters.empty()) {
-					enemy->characters[0]->isActive = true;
+		else {
+			cout << "COMBAT: Not enough dices for elemental skill!" << endl;
+		}
+	}
+
+	if (actionSuccessful) {
+		if (activeEnemy->hp <= 0) {
+			cout << "COMBAT: Enemy card down" << endl;
+			activeEnemy->hp = 0;
+			activeEnemy->isActive = false;
+
+			for (CharacterCard* e : enemy->characters) {
+				if (e->hp > 0) {
+					e->isActive = true;
+					break;
 				}
-				OrganizeBoard();
 			}
-			currentState = GameState::ENEMY_ACTION;
-			EnemyTurn();
+			OrganizeBoard();
 		}
+
+		currentState = GameState::ENEMY_ACTION;
+		EnemyTurn();
 		return;
 	}
 	//input on active characters
 	if (button == GLFW_MOUSE_BUTTON_2) {
 		for (size_t i = 0; i < player->characters.size(); i++) {
 			CharacterCard* c = player->characters[i];
-			if (!c->isActive && mouseX >= c->x && mouseX <= c->x + c->width && sceneY >= c->y && sceneY <= c->y + c->height) {
+			if (c->hp > 0 && !c->isActive && mouseX >= c->x && mouseX <= c->x + c->width && sceneY >= c->y && sceneY <= c->y + c->height) {
 				
 				//costs 1 dice to change characters
 				if (player->dices.size() >= 1) {
@@ -558,9 +596,16 @@ void Tema1::EnemyTurn() {
 		activePlayer->hp -= 2;
 
 		if (activePlayer->hp <= 0) {
-			player->characters.erase(std::remove(player->characters.begin(), player->characters.end(), activePlayer), player->characters.end());
-			if (!player->characters.empty())
-				player->characters[0]->isActive = true;
+			cout << "COMBAT: Player card down" << endl;
+			activePlayer->hp = 0;
+			activePlayer->isActive = false;
+
+			for (CharacterCard* p : player->characters) {
+				if (p->hp > 0) {
+					p->isActive = true;
+					break;
+				}
+			}
 			OrganizeBoard();
 		}
 	}

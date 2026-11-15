@@ -6,6 +6,14 @@ using namespace m1;
 
 void Tema1::RenderCharacters(Player* p) {
 	for (CharacterCard* c : p->characters) {
+		//drawing overlay if character down
+		if (c->hp <= 0) {
+			glm::mat3 deadMat = glm::mat3(1);
+			deadMat *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+			deadMat *= trans2D::Rotate(glm::radians(90.0f));
+			deadMat *= trans2D::Scale(c->height * 0.96f, c->width * 0.96f);
+			RenderMesh2D(meshes["dead_overlay"], shaders["VertexColor"], deadMat);
+		}
 		//drawing hp
 		for (int i = 0; i < c->hp; i++) {
 			glm::mat3 hpMatrix = glm::mat3(1);
@@ -45,9 +53,7 @@ void Tema1::RenderCharacters(Player* p) {
 		borderMatrix *= trans2D::Scale(c->height * 1.05f, c->width * 1.05f);
 		RenderMesh2D(c->mesh, shaders["VertexColor"], borderMatrix);
 
-
-
-
+		
 
 	}
 }
