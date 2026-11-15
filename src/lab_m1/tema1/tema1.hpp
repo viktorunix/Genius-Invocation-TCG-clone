@@ -58,6 +58,7 @@ namespace m1
 		GameState currentState = GameState::PLAYER_ACTION;
 		bool playerPassed = false;
 		bool enemyPassed = false;
+		int firstToPass = 0; //0 = nobody 1 = player 2 = enemy
 		bool actionSuccessful = false;
 		void StartNewRound();
 	};
