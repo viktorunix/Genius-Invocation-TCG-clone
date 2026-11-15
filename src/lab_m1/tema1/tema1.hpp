@@ -2,6 +2,7 @@
 
 #include "components/simple_scene.h"
 #include "lab_m1/tema1/card.hpp"
+#include "lab_m1/tema1/card_factory.hpp"
 #include <vector>
 
 namespace m1
@@ -43,7 +44,7 @@ namespace m1
 		void EnemyTurn();
 
 		void DrawCardFromDeck(Player* p, Card* newCard);
-
+		void DrawRandomActionCard(Player* p);
 		void HandleDeath(Player* p);
 		void EndPlayerTurn();
 		void PerformPlayerAttack(int baseDmg);
@@ -65,6 +66,8 @@ namespace m1
 		int firstToPass = 0; //0 = nobody 1 = player 2 = enemy
 		bool actionSuccessful = false;
 		void StartNewRound();
+
+		CardFactory* factory;
 	};
 
 	

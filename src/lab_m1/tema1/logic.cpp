@@ -35,19 +35,59 @@ void Tema1::EndPlayerTurn() {
 }
 
 void Tema1::PerformPlayerAttack(int baseDmg) {
-	CharacterCard* activeEnemy = nullptr;
-	for (CharacterCard* c : enemy->characters)
-		if (c->isActive) activeEnemy = c;
-	if (activeEnemy) {
-		activeEnemy->hp -= baseDmg;
-		HandleDeath(enemy);
-		EndPlayerTurn();
+	if (!enemy->activeCharacter || !player->activeCharacter) return;
+	CharacterCard* target = enemy->activeCharacter;
+	Element atkElement = player->activeCharacter->element;
+	bool triggerMeltVape = false;
+	bool triggerFreeze = false;
+
+	if (target->hasAppliedElement) {
+		Element targetElement = target->appliedElement;
+
+		//melt;
+		if ((atkElement == Pyro && (targetElement == Hydro || targetElement == Cryo)) ||
+			((targetElement == Hydro || atkElement == Cryo) && targetElement == Pyro)) {
+			triggerMeltVape = true;
+		}
+		//freeze
+		else if ((atkElement == Hydro && targetElement == Cryo) || (atkElement == Cryo && targetElement == Hydro)) {
+			triggerFreeze = true;
+		}
+		target->hasAppliedElement = false;
 	}
+	else {
+		target->hasAppliedElement = true;
+		target->appliedElement = atkElement;
+	}
+	//dmg calculation
+	int finalDmg = baseDmg;
+	if (triggerMeltVape) {
+		finalDmg += 2;
+		cout << "REACTION: MELT/VAPE" << endl;
+
+	}
+	if (triggerFreeze) {
+		target->isFrozen = true;
+		cout << "REACTION: FREEZE" << endl;
+	}
+	target->hp -= finalDmg;
+	HandleDeath(enemy);
+	EndPlayerTurn();
+	
 }
 void Tema1::EnemyTurn() {
 	if (enemyPassed ||!enemy->activeCharacter || !player->activeCharacter) return;
 
-	
+	//verify freeze
+	if (enemy->activeCharacter->isFrozen) {
+		cout << "ENEMY: character card frozen, skip their turn" << endl;
+		enemy->activeCharacter->isFrozen = false;
+		enemyPassed = true;
+		if (firstToPass == 0) firstToPass = 2;
+
+		currentState = GameState::PLAYER_ACTION;
+		return;
+	}
 	std::vector<EnemyMove> validMoves;
 	validMoves.push_back(EnemyMove::PASS);
 
@@ -110,4 +150,77 @@ void Tema1::EnemyTurn() {
 	else {
 		currentState = GameState::PLAYER_ACTION;
 	}
+}
+void Tema1::StartNewRound() {
+	playerPassed = false;
+	enemyPassed = false;
+
+
+	for (Dice* d : player->dices)
+		delete d;
+	player->dices.clear();
+
+	for (Dice* d : enemy->dices)
+		delete d;
+	enemy->dices.clear();
+
+
+	for (int i = 0; i < 10; i++) {
+		Dice* d1 = new Dice();
+		d1->element = Omni;
+		player->dices.push_back(d1);
+
+		Dice* d2 = new Dice();
+		d2->element = Omni;
+		enemy->dices.push_back(d2);
+	}
+	for (int i = 0; i < 2; ++i) {
+		DrawRandomActionCard(player);
+	}
+
+	if (firstToPass == 2) {
+		cout << "NEW ROUND: Enemy starts" << endl;
+		firstToPass = 0;
+		currentState = GameState::ENEMY_ACTION;
+		EnemyTurn();
+	}
+	else {
+		cout << "NEW ROUND: Player starts" << endl;
+		firstToPass = 0;
+		currentState = GameState::PLAYER_ACTION;
+	}
+}
+void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
+	glm::ivec2 resolution = window->GetResolution();
+
+	float leftMargin = resolution.x * 0.05f;
+	float deckY = (p == player) ? resolution.y * 0.30f : resolution.y * 0.60f;
+
+	newCard->x = leftMargin;
+	newCard->y = deckY;
+
+	newCard->width = resolution.x * 0.07f;
+	newCard->height = newCard->width * 1.35f;
+
+	newCard->currentZone = CardZone::HAND;
+	p->hand.push_back(newCard);
+
+	OrganizeHand(p->hand);
+}
+
+void Tema1::DrawRandomActionCard(Player* p) {
+	int r = rand() % 3;
+	Card* newCard = nullptr;
+
+	if (r == 0) {
+		newCard = factory->CreateHealCard();
+
+	}
+	else if (r == 1) {
+		newCard = factory->CreateAttackBoostCard();
+	}
+	else {
+		newCard = factory->CreateAddDiceCard();
+	}
+	DrawCardFromDeck(p, newCard);
 }

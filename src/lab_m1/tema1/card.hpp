@@ -65,7 +65,9 @@ namespace m1
 		glm::vec3 borderColor;
 		Mesh* symbolMesh;
 		std::vector<Mesh*> centerDrawingMeshes;
-
+		bool hasAppliedElement = false;
+		Element appliedElement;
+		bool isFrozen = false;
 	};
 
 	class ActionCard : public Card {

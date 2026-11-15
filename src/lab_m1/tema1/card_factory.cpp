@@ -89,12 +89,15 @@ ActionCard* CardFactory::CreateAttackBoostCard() {
 }
 
 ActionCard* CardFactory::CreateAddDiceCard() {
+	if (meshes.find("icon_arrow") == meshes.end()) {
+		meshes["icon_arrow"] = CreateArrowMesh("icon_arrow", glm::vec3(0.9f, 0.8f, 0.2f));
+	}
 	ActionCard* card = new ActionCard();
 	card->mesh = meshes["card1"];
 	card->currentZone = CardZone::HAND;
 	card->costDice = 1;
 	card->type = ActionType::ADD_DICE;
-	card->effectIconMesh = meshes["dice_omni"];
+	card->effectIconMesh = meshes["icon_arrow"];
 
 	return card;
 }
@@ -191,7 +194,26 @@ Mesh* CardFactory::CreateRogueDrawing(const char* name) {
 	mesh->InitFromData(vertices, indices);
 	return mesh;
 }
-
+Mesh* CardFactory::CreateArrowMesh(const char* name, glm::vec3 color) {
+	std::vector<VertexFormat> vertices = {
+		// base
+		VertexFormat(glm::vec3(-0.1f, -0.3f, 0.0f), color),
+		VertexFormat(glm::vec3(0.1f, -0.3f, 0.0f), color),
+		VertexFormat(glm::vec3(0.1f,  0.1f, 0.0f), color),
+		VertexFormat(glm::vec3(-0.1f,  0.1f, 0.0f), color),
+		// tip
+		VertexFormat(glm::vec3(-0.25f, 0.1f, 0.0f), color),
+		VertexFormat(glm::vec3(0.25f, 0.1f, 0.0f), color),
+		VertexFormat(glm::vec3(0.0f,  0.4f, 0.0f), color)
+	};
+	std::vector<unsigned int> indices = {
+		0, 1, 2, 0, 2, 3, 
+		4, 5, 6           
+	};
+	Mesh* mesh = new Mesh(name);
+	mesh->InitFromData(vertices, indices);
+	return mesh;
+}
 CharacterCard* CardFactory::CreatePyroCharacter() {
 	if (meshes.find("symbol_pyro") == meshes.end()) {
 		meshes["symbol_pyro"] = CreateTriangleMesh("symbol_pyro", glm::vec3(1.0f, 0.3f, 0.1f));

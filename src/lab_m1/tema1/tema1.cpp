@@ -1,6 +1,5 @@
 #include "lab_m1/tema1/tema1.hpp"
 #include "lab_m1/tema1/trans2D.hpp"
-#include "lab_m1/tema1/card_factory.hpp"
 #include <vector>
 #include <iostream>
 
@@ -8,9 +7,9 @@ using namespace std;
 using namespace m1;
 void Tema1::OrganizeBoard() {
 	glm::ivec2 res = window->GetResolution();
-	float dynamicWidth = res.x * 0.08f;
-	float dynamicHeight = dynamicWidth * 1.5f;
-	float slotSpacing = dynamicWidth * 1.2f;
+	float dynamicWidth = res.x * 0.07f;
+	float dynamicHeight = dynamicWidth * 1.35f;
+	float slotSpacing = dynamicWidth * 1.4f;
 	float boardCenterX = res.x / 2.0f;
 	float startX = boardCenterX - slotSpacing - (dynamicWidth / 2.0f);
 
@@ -38,8 +37,8 @@ void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	glm::ivec2 res = window->GetResolution();
 	float cardWidth = 100.0f;
 
-	float dynamicWidth = res.x * 0.08f;
-	float dynamicHeight = dynamicWidth * 1.5f;
+	float dynamicWidth = res.x * 0.07f;
+	float dynamicHeight = dynamicWidth * 1.35f;
 	float spacing = res.x * 0.015f;
 
 	int cardsInHand = 0;
@@ -153,10 +152,10 @@ Card::Card() {
 
 void Tema1::Init() {
 	glm::ivec2 resolution = window->GetResolution();
-	float dynamicWidth = resolution.x * 0.08f;
-	float dynamicHeight = dynamicWidth * 1.5f;
+	float dynamicWidth = resolution.x * 0.7f;
+	float dynamicHeight = dynamicWidth * 1.35f;
 
-	float slotSpacing = dynamicWidth * 1.2f; 
+	float slotSpacing = dynamicWidth * 1.4f; 
 	float boardCenterX = resolution.x / 2.0f;
 	float startX = boardCenterX - slotSpacing - (dynamicWidth / 2.0f);
 	float boardY = (resolution.y * 0.25f) + (resolution.y * 0.05f); 
@@ -225,31 +224,23 @@ void Tema1::Init() {
 	cardBg->InitFromData(bgVertices, bgIndices);
 	meshes["card_bg"] = cardBg;
 	
-	CardFactory factory(meshes);
+	factory = new CardFactory(meshes);
 
 	
-	player->characters.push_back(factory.CreatePyroCharacter());
-	player->characters.push_back(factory.CreateHydroCharacter());
-	player->characters.push_back(factory.CreateCryoCharacter());
+	player->characters.push_back(factory->CreatePyroCharacter());
+	player->characters.push_back(factory->CreateHydroCharacter());
+	player->characters.push_back(factory->CreateCryoCharacter());
 	player->characters[0]->isActive = true;
 	player->activeCharacter = player->characters[0];
-	
+	DrawRandomActionCard(player);
+	DrawRandomActionCard(player);
 
-
-	DrawCardFromDeck(player, factory.CreateHealCard());
-	DrawCardFromDeck(player, factory.CreateAttackBoostCard());
-	DrawCardFromDeck(player, factory.CreateAddDiceCard());
-	DrawCardFromDeck(player, factory.CreateHealCard());
-	DrawCardFromDeck(player, factory.CreateAttackBoostCard());
-
-
-	
 
 
 	enemy = new Player(5);
-	enemy->characters.push_back(factory.CreateHydroCharacter());
-	enemy->characters.push_back(factory.CreatePyroCharacter());
-	enemy->characters.push_back(factory.CreateCryoCharacter());
+	enemy->characters.push_back(factory->CreateHydroCharacter());
+	enemy->characters.push_back(factory->CreatePyroCharacter());
+	enemy->characters.push_back(factory->CreateCryoCharacter());
 	enemy->characters[0]->isActive = true;
 	enemy->activeCharacter = player->characters[0];
 	float enemyBoardY = (resolution.y * 0.55f) + (resolution.y * 0.05f);
@@ -278,6 +269,17 @@ void Tema1::Init() {
 	std::vector<unsigned int> ovIndices = { 0, 1, 2, 0, 2, 3 };
 	deadOverlay->InitFromData(ovVertices, ovIndices);
 	meshes["dead_overlay"] = deadOverlay;
+
+	Mesh* freezeOverlay = new Mesh("freeze_overlay");
+	std::vector<VertexFormat> fzVertices = {
+		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)), // Bleu gheață
+		VertexFormat(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)),
+		VertexFormat(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)),
+		VertexFormat(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f))
+	};
+	std::vector<unsigned int> fzIndices = { 0, 1, 2, 0, 2, 3 };
+	freezeOverlay->InitFromData(fzVertices, fzIndices);
+	meshes["freeze_overlay"] = freezeOverlay;
 }
 
 void Tema1::FrameStart() {
@@ -558,58 +560,4 @@ void Tema1::OnWindowResize(int width, int height) {
 
 }
 
-void Tema1::StartNewRound() {
-	playerPassed = false;
-	enemyPassed = false;
-
-
-	for (Dice* d : player->dices)
-		delete d;
-	player->dices.clear();
-
-	for (Dice* d : enemy->dices)
-		delete d;
-	enemy->dices.clear();
-
-
-	for (int i = 0; i < 10; i++) {
-		Dice* d1 = new Dice();
-		d1->element = Omni;
-		player->dices.push_back(d1);
-
-		Dice* d2 = new Dice();
-		d2->element = Omni;
-		enemy->dices.push_back(d2);
-	}
-
-
-	if (firstToPass == 2) {
-		cout << "NEW ROUND: Enemy starts" << endl;
-		firstToPass = 0; 
-		currentState = GameState::ENEMY_ACTION;
-		EnemyTurn();
-	}
-	else {
-		cout << "NEW ROUND: Player starts" << endl;
-		firstToPass = 0; 
-		currentState = GameState::PLAYER_ACTION;
-	}
-}
-void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
-	glm::ivec2 resolution = window->GetResolution();
-
-	float leftMargin = resolution.x * 0.05f;
-	float deckY = (p == player) ? resolution.y * 0.30f : resolution.y * 0.60f;
-
-	newCard->x = leftMargin;
-	newCard->y = deckY;
-
-	newCard->width = resolution.x * 0.08f;
-	newCard->height = newCard->width * 1.5f;
-
-	newCard->currentZone = CardZone::HAND;
-	p->hand.push_back(newCard);
-
-	OrganizeHand(p->hand);
-}
 

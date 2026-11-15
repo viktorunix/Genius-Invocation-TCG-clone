@@ -26,5 +26,6 @@ namespace m1 {
 		Mesh* CreateMageDrawing(const char* name);
 		Mesh* CreateKnightDrawing(const char* name);
 		Mesh* CreateRogueDrawing(const char* name);
+		Mesh* CreateArrowMesh(const char* name, glm::vec3 color);
 	};
 }

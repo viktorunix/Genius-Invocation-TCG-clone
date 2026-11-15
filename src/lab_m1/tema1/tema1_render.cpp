@@ -6,6 +6,25 @@ using namespace m1;
 
 void Tema1::RenderCharacters(Player* p) {
 	for (CharacterCard* c : p->characters) {
+		//element
+		if (c->hasAppliedElement && c->hp > 0) {
+			glm::mat3 appMat = glm::mat3(1);
+			appMat *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + c->height + (c->width * 0.15f));
+			appMat *= trans2D::Scale(c->width * 0.2f, c->width * 0.2f);
+
+			if (c->appliedElement == Pyro) RenderMesh2D(meshes["symbol_pyro"], shaders["VertexColor"], appMat);
+			else if (c->appliedElement == Hydro) RenderMesh2D(meshes["symbol_hydro"], shaders["VertexColor"], appMat);
+			else if (c->appliedElement == Cryo) RenderMesh2D(meshes["symbol_cryo"], shaders["VertexColor"], appMat);
+		}
+
+		//freeze overlay
+		if (c->isFrozen && c->hp > 0) {
+			glm::mat3 freezeMat = glm::mat3(1);
+			freezeMat *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+			freezeMat *= trans2D::Rotate(glm::radians(90.0f));
+			freezeMat *= trans2D::Scale(c->height * 0.96f, c->width * 0.96f);
+			RenderMesh2D(meshes["freeze_overlay"], shaders["VertexColor"], freezeMat);
+		}
 		//drawing overlay if character down
 		if (c->hp <= 0) {
 			glm::mat3 deadMat = glm::mat3(1);
@@ -145,30 +164,43 @@ void Tema1::RenderPlayArena() {
 
 void Tema1::RenderDices() {
 	glm::ivec2 resolution = window->GetResolution();
-	float dynamicScale = resolution.y * 0.055f;
+	float dynamicScale = resolution.y * 0.015f;
 	float dynamicSpacing = dynamicScale * 2.25f;
-	float offsetRight = resolution.x * 0.04f;
-	glm::mat3 modelMatrix;
-	for (int i = 0; i < player->dices.size(); i++) {
-		modelMatrix = glm::mat3(1);
 
-		float posX = (float)resolution.x - offsetRight;
+	
+	float playerOffsetX = resolution.x * 0.04f;
+	for (int i = 0; i < player->dices.size(); i++) {
+		glm::mat3 modelMatrix = glm::mat3(1);
+		float posX = (float)resolution.x - playerOffsetX;
 		float posY = (float)resolution.y - dynamicSpacing * (i + 1);
+
 		modelMatrix *= trans2D::Translate(posX, posY);
 		modelMatrix *= trans2D::Scale(dynamicScale, dynamicScale);
-		switch (player->dices[i]->element) {
-		case Omni:
-			RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], modelMatrix);
-			break;
-		case Pyro:
-			RenderMesh2D(meshes["dice_pyro"], shaders["VertexColor"], modelMatrix);
-			break;
-		case Cryo:
-			RenderMesh2D(meshes["dice_cryo"], shaders["VertexColor"], modelMatrix);
-			break;
-		case Hydro:
-			RenderMesh2D(meshes["dice_hydro"], shaders["VertexColor"], modelMatrix);
 
+		switch (player->dices[i]->element) {
+		case Omni: RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], modelMatrix); break;
+		case Pyro: RenderMesh2D(meshes["dice_pyro"], shaders["VertexColor"], modelMatrix); break;
+		case Cryo: RenderMesh2D(meshes["dice_cryo"], shaders["VertexColor"], modelMatrix); break;
+		case Hydro: RenderMesh2D(meshes["dice_hydro"], shaders["VertexColor"], modelMatrix); break;
+		}
+	}
+
+	
+	float enemyOffsetX = resolution.x * 0.09f;
+	for (int i = 0; i < enemy->dices.size(); i++) {
+		glm::mat3 modelMatrix = glm::mat3(1);
+		float posX = (float)resolution.x - enemyOffsetX;
+		float posY = (float)resolution.y - dynamicSpacing * (i + 1);
+
+		modelMatrix *= trans2D::Translate(posX, posY);
+		modelMatrix *= trans2D::Scale(dynamicScale, dynamicScale);
+
+		
+		switch (enemy->dices[i]->element) {
+		case Omni: RenderMesh2D(meshes["dice_omni"], shaders["VertexColor"], modelMatrix); break;
+		case Pyro: RenderMesh2D(meshes["dice_pyro"], shaders["VertexColor"], modelMatrix); break;
+		case Cryo: RenderMesh2D(meshes["dice_cryo"], shaders["VertexColor"], modelMatrix); break;
+		case Hydro: RenderMesh2D(meshes["dice_hydro"], shaders["VertexColor"], modelMatrix); break;
 		}
 	}
 }
