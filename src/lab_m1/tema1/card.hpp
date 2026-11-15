@@ -39,8 +39,13 @@ namespace m1
 		
 		CardZone currentZone = CardZone::DECK;
 		float x, y;
-		float width = 100.0f;
-		float height = 150.0f;
+		//for animations
+		float targetX, targetY;
+		bool isAnimating = false;
+
+
+		float width = 0.0f;
+		float height = 0.0f;
 		bool isDragging = false;
 
 		void Init();

@@ -41,6 +41,8 @@ namespace m1
 		void OrganizeBoard();
 
 		void EnemyTurn();
+
+		void DrawCardFromDeck(Player* p, Card* newCard);
 	protected:
 		Card* card;
 		Card* card2;

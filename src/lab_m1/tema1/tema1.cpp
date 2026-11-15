@@ -17,6 +17,7 @@ void Tema1::OrganizeBoard() {
 
 	float playerBoardY = (res.y * 0.25f) + (res.y * 0.05f);
 	for (size_t i = 0; i < player->characters.size(); i++) {
+
 		player->characters[i]->width = dynamicWidth;
 		player->characters[i]->height = dynamicHeight;
 		player->characters[i]->x = startX + (i * slotSpacing);
@@ -63,8 +64,9 @@ void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	int displayIndex = 0;
 	for (size_t i = 0; i < handCards.size(); i++) {
 		if (handCards[i]->currentZone == CardZone::HAND && !handCards[i]->isDragging) {
-			handCards[i]->x = startX + displayIndex * (dynamicWidth + spacing);
-			handCards[i]->y = fixedY;
+			handCards[i]->targetX = startX + displayIndex * (dynamicWidth + spacing);
+			handCards[i]->targetY = fixedY;
+			handCards[i]->isAnimating = true;
 			displayIndex++;
 		}
 	}
@@ -234,18 +236,14 @@ void Tema1::Init() {
 	
 
 
-	player->hand.push_back(factory.CreateHealCard());
-	player->hand.push_back(factory.CreateAttackBoostCard());
-	player->hand.push_back(factory.CreateAddDiceCard());
-	player->hand.push_back(factory.CreateHealCard());
-	player->hand.push_back(factory.CreateAttackBoostCard());
+	DrawCardFromDeck(player, factory.CreateHealCard());
+	DrawCardFromDeck(player, factory.CreateAttackBoostCard());
+	DrawCardFromDeck(player, factory.CreateAddDiceCard());
+	DrawCardFromDeck(player, factory.CreateHealCard());
+	DrawCardFromDeck(player, factory.CreateAttackBoostCard());
 
 
-	for (Card* c : player->hand) {
-		c->width = dynamicWidth;
-		c->height = dynamicHeight;
-	}
-	OrganizeHand(player->hand);
+	
 
 
 	enemy = new Player(5);
@@ -274,7 +272,21 @@ void Tema1::FrameStart() {
 
 
 void Tema1::Update(float deltaTimeSeconds) {
+	//card drawing animation
+	float animSpeed = 5.0f;
+	for (Card* c : player->hand) {
+		if (c->isAnimating && !c->isDragging) {
+			c->x += (c->targetX - c->x) * animSpeed * deltaTimeSeconds;
+			c->y += (c->targetY - c->y) * animSpeed * deltaTimeSeconds;
 
+			//stopping the animation very close to the destination
+			if (abs(c->targetX - c->x) < 1.0f && abs(c->targetY - c->y) < 1.0f) {
+				c->x = c->targetX;
+				c->y = c->targetY;
+				c->isAnimating = false;
+			}
+		}
+	}
 	RenderCharacters(player);
 	RenderCharacters(enemy);
 	RenderHand();
@@ -590,4 +602,22 @@ void Tema1::StartNewRound() {
 
 	currentState = GameState::PLAYER_ACTION;
 
+}
+
+void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
+	glm::ivec2 resolution = window->GetResolution();
+
+
+	float leftMargin = resolution.x * 0.05f;
+	float deckY = (p == player) ? resolution.y * 0.30f : resolution.y * 0.60f;
+
+	newCard->x = leftMargin;
+	newCard->y = deckY;
+
+	newCard->width = resolution.x * 0.08f;
+	newCard->width = newCard->width * 1.5f;
+	newCard->currentZone = CardZone::HAND;
+	p->hand.push_back(newCard);
+
+	OrganizeHand(p->hand);
 }
