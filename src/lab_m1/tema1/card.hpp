@@ -3,6 +3,12 @@
 #include "core/gpu/mesh.h"
 namespace m1
 {
+	enum class EnemyMove {
+		PASS = 0,
+		NORMAL_ATTACK = 1,
+		ELEMENTAL_SKILL,
+		SWITCH_CHARACTER
+	};
 	enum class GameState {
 		DICE_ROLL,
 		PLAYER_ACTION,
@@ -84,6 +90,8 @@ namespace m1
 		std::vector<Dice*> dices;
 		std::vector<Card*> hand;
 		std::vector<CharacterCard*> characters;
+
+		CharacterCard* activeCharacter = nullptr;
 		Player(int nrDices);
 	};
 }

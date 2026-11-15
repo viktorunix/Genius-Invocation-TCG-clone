@@ -232,7 +232,7 @@ void Tema1::Init() {
 	player->characters.push_back(factory.CreateHydroCharacter());
 	player->characters.push_back(factory.CreateCryoCharacter());
 	player->characters[0]->isActive = true;
-
+	player->activeCharacter = player->characters[0];
 	
 
 
@@ -251,6 +251,7 @@ void Tema1::Init() {
 	enemy->characters.push_back(factory.CreatePyroCharacter());
 	enemy->characters.push_back(factory.CreateCryoCharacter());
 	enemy->characters[0]->isActive = true;
+	enemy->activeCharacter = player->characters[0];
 	float enemyBoardY = (resolution.y * 0.55f) + (resolution.y * 0.05f);
 
 	OrganizeBoard();
@@ -380,7 +381,13 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 			cout << "System: end of round" << endl;
 			currentState = GameState::ENEMY_ACTION;
 			playerPassed = true;
-			EnemyTurn(); // enemy's turn ig
+			if (firstToPass == 0) firstToPass = 1;
+			if (enemyPassed) StartNewRound();
+			else {
+				currentState = GameState::ENEMY_ACTION;
+				EnemyTurn(); // enemy's turn ig
+			}
+			
 		}
 		return;
 	}
@@ -391,27 +398,16 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 		return;
 	}
 
-	CharacterCard* activePlayer = nullptr;
-	for (CharacterCard* c : player->characters) {
-		if (c->isActive) activePlayer = c;
-	}
-	CharacterCard* activeEnemy = nullptr;
-	for (CharacterCard* c : enemy->characters) {
-		if (c->isActive) activeEnemy = c;
-	}
-	if (!activePlayer || !activeEnemy) return;
-
 	//combat input
 	float naY = res.y * 0.55f;
 	float skY = res.y * 0.65f;
-	bool actionSuccessful = false;
+
 
 	if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= naY && sceneY <= naY + btnH) {
 		if (player->dices.size() >= 1) {
 			player->dices.pop_back();
-			activeEnemy->hp -= 2;
-			cout << "COMBAT: " << activePlayer->element << " normal attacked (2 DMG)" << endl;
-			actionSuccessful = true;
+			PerformPlayerAttack(2);
+			cout << "COMBAT: " << " normal attack (2 DMG)" << endl;
 		}
 		else {
 			cout << "COMBAT: Not enough dices for attacking!" << endl;
@@ -421,34 +417,15 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 	else if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= skY && sceneY <= skY + btnH) {
 		if (player->dices.size() >= 3) {
 			player->dices.pop_back(); player->dices.pop_back(); player->dices.pop_back(); 
-			activeEnemy->hp -= 3;
-			cout << "COMBAT: " << activePlayer->element << " used elemental skill (3 DMG)" << endl;
-			actionSuccessful = true;
+			PerformPlayerAttack(3);
+			cout << "COMBAT: " << " used elemental skill (3 DMG)" << endl;
 		}
 		else {
 			cout << "COMBAT: Not enough dices for elemental skill!" << endl;
 		}
 	}
 
-	if (actionSuccessful) {
-		if (activeEnemy->hp <= 0) {
-			cout << "COMBAT: Enemy card down" << endl;
-			activeEnemy->hp = 0;
-			activeEnemy->isActive = false;
-
-			for (CharacterCard* e : enemy->characters) {
-				if (e->hp > 0) {
-					e->isActive = true;
-					break;
-				}
-			}
-			OrganizeBoard();
-		}
-
-		currentState = GameState::ENEMY_ACTION;
-		EnemyTurn();
-		return;
-	}
+	
 	//input on active characters
 	if (button == GLFW_MOUSE_BUTTON_2) {
 		for (size_t i = 0; i < player->characters.size(); i++) {
@@ -459,13 +436,13 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 				if (player->dices.size() >= 1) {
 					player->dices.pop_back();
 
-					activePlayer->isActive = false;
+					for (CharacterCard* active : player->characters) active->isActive = false; // deactivating every card
 					c->isActive = true;
+					player->activeCharacter = c;
 					cout << "SYSTEM: " << "you changed active character" << endl;
 					OrganizeBoard();
-
-					currentState = GameState::ENEMY_ACTION;
-					EnemyTurn();
+					EndPlayerTurn();
+					
 				}
 				else {
 					cout << "SYSTEM: you need at least 1 dice to change characters" << endl;
@@ -581,82 +558,7 @@ void Tema1::OnWindowResize(int width, int height) {
 
 }
 
-void Tema1::EnemyTurn() {
-	if (enemyPassed) return; 
-
-	CharacterCard* activePlayer = nullptr;
-	for (CharacterCard* c : player->characters) if (c->isActive) activePlayer = c;
-	CharacterCard* activeEnemy = nullptr;
-	for (CharacterCard* c : enemy->characters) if (c->isActive) activeEnemy = c;
-	if (!activePlayer || !activeEnemy) return;
-
-
-	std::vector<int> validMoves;
-	validMoves.push_back(0); 
-
-	if (enemy->dices.size() >= 1) validMoves.push_back(1); //normal attack
-	if (enemy->dices.size() >= 3) validMoves.push_back(2); //elemental attack
-
-	//verifying if enemy can switch
-	bool canSwitch = false;
-	for (CharacterCard* c : enemy->characters) {
-		if (!c->isActive && c->hp > 0) canSwitch = true;
-	}
-	if (canSwitch && enemy->dices.size() >= 1) validMoves.push_back(3); //switch
-
-
-	int move = validMoves[rand() % validMoves.size()];
-
-	if (move == 0) {
-		cout << "INAMIC: A declarat End Round (Pass)!" << endl;
-		enemyPassed = true;
-		if (firstToPass == 0) firstToPass = 2; 
-	}
-	else if (move == 1) {
-		enemy->dices.pop_back();
-		activePlayer->hp -= 2;
-		cout << "INAMIC: Atac Normal (2 DMG)" << endl;
-	}
-	else if (move == 2) {
-		enemy->dices.pop_back(); enemy->dices.pop_back(); enemy->dices.pop_back();
-		activePlayer->hp -= 3;
-		cout << "INAMIC: Skill Elemental (3 DMG)" << endl;
-	}
-	else if (move == 3) {
-		enemy->dices.pop_back();
-		activeEnemy->isActive = false; 
-		
-		for (CharacterCard* c : enemy->characters) {
-			if (!c->isActive && c->hp > 0) {
-				c->isActive = true; break;
-			}
-		}
-		cout << "INAMIC: A schimbat personajul activ!" << endl;
-		OrganizeBoard();
-	}
-
-	// verifying if player character is down
-	if (activePlayer->hp <= 0) {
-		cout << "SISTEM: Personajul tau activ a cazut!" << endl;
-		activePlayer->hp = 0;
-		activePlayer->isActive = false; 
-		for (CharacterCard* p : player->characters) {
-			if (p->hp > 0) { p->isActive = true; break; }
-		}
-		OrganizeBoard();
-	}
-
-
-	if (playerPassed && enemyPassed) {
-		StartNewRound();
-	}
-	else if (playerPassed && !enemyPassed) {
-		EnemyTurn(); 
-	}
-	else {
-		currentState = GameState::PLAYER_ACTION;
-	}
-}void Tema1::StartNewRound() {
+void Tema1::StartNewRound() {
 	playerPassed = false;
 	enemyPassed = false;
 
@@ -710,3 +612,4 @@ void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
 
 	OrganizeHand(p->hand);
 }
+

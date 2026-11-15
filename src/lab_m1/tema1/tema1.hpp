@@ -43,6 +43,10 @@ namespace m1
 		void EnemyTurn();
 
 		void DrawCardFromDeck(Player* p, Card* newCard);
+
+		void HandleDeath(Player* p);
+		void EndPlayerTurn();
+		void PerformPlayerAttack(int baseDmg);
 	protected:
 		Card* card;
 		Card* card2;
