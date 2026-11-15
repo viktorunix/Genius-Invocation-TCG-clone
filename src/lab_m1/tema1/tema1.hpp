@@ -38,7 +38,7 @@ namespace m1
 		void RenderHand();
 		void RenderCharacters(Player* p);
 		void ChangeCardColor(Card* card, glm::vec3 color);
-		void OrganizeHand(std::vector<Card*>& handCards);
+		void OrganizeHand(Player* p, std::vector<Card*>& handCards);
 		void OrganizeBoard();
 
 		void EnemyTurn();

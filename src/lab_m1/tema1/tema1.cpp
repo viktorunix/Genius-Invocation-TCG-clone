@@ -2,6 +2,7 @@
 #include "lab_m1/tema1/trans2D.hpp"
 #include <vector>
 #include <iostream>
+#include <time.h>
 
 using namespace std;
 using namespace m1;
@@ -33,7 +34,7 @@ void Tema1::OrganizeBoard() {
 		enemy->characters[i]->y = enemy->characters[i]->isActive ? enemyBoardY - (dynamicHeight * 0.2f) : enemyBoardY;
 	}
 }
-void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
+void Tema1::OrganizeHand(Player *p, std::vector<Card*>& handCards) {
 	glm::ivec2 res = window->GetResolution();
 	float cardWidth = 100.0f;
 
@@ -58,7 +59,7 @@ void Tema1::OrganizeHand(std::vector<Card*>& handCards) {
 	//starting x to be in the center
 	float totalWidth = (cardsInHand * dynamicWidth) + ((cardsInHand - 1) * spacing);
 	float startX = (res.x - totalWidth) / 2.0f;
-	float fixedY = res.y * 0.05f;
+	float fixedY = (p == enemy) ? res.y * 0.75f : res.y * 0.05f;
 
 	int displayIndex = 0;
 	for (size_t i = 0; i < handCards.size(); i++) {
@@ -151,6 +152,7 @@ Card::Card() {
 }
 
 void Tema1::Init() {
+	srand(static_cast<unsigned int>(time(NULL)));
 	glm::ivec2 resolution = window->GetResolution();
 	float dynamicWidth = resolution.x * 0.7f;
 	float dynamicHeight = dynamicWidth * 1.35f;
@@ -234,6 +236,9 @@ void Tema1::Init() {
 	player->activeCharacter = player->characters[0];
 	DrawRandomActionCard(player);
 	DrawRandomActionCard(player);
+	DrawRandomActionCard(player);
+	DrawRandomActionCard(player);
+	DrawRandomActionCard(player);
 
 
 
@@ -242,7 +247,13 @@ void Tema1::Init() {
 	enemy->characters.push_back(factory->CreatePyroCharacter());
 	enemy->characters.push_back(factory->CreateCryoCharacter());
 	enemy->characters[0]->isActive = true;
-	enemy->activeCharacter = player->characters[0];
+	enemy->activeCharacter = enemy->characters[0];
+	DrawRandomActionCard(enemy);
+	DrawRandomActionCard(enemy);
+	DrawRandomActionCard(enemy);
+	DrawRandomActionCard(enemy);
+	DrawRandomActionCard(enemy);
+
 	float enemyBoardY = (resolution.y * 0.55f) + (resolution.y * 0.05f);
 
 	OrganizeBoard();
@@ -293,7 +304,21 @@ void Tema1::FrameStart() {
 
 
 void Tema1::Update(float deltaTimeSeconds) {
-	
+	//updating timer for hit animations
+	for (CharacterCard* c : player->characters) {
+		if (c->isHit) {
+			c->hitAnimationTimer -= deltaTimeSeconds;
+			if (c->hitAnimationTimer <= 0) 
+				c->isHit = false;
+		}
+	}
+	for (CharacterCard* c : enemy->characters) {
+		if (c->isHit) {
+			c->hitAnimationTimer -= deltaTimeSeconds;
+			if (c->hitAnimationTimer <= 0) 
+				c->isHit = false;
+		}
+	}
 	//card drawing animation
 	float animSpeed = 5.0f;
 	for (Card* c : player->hand) {
@@ -302,6 +327,18 @@ void Tema1::Update(float deltaTimeSeconds) {
 			c->y += (c->targetY - c->y) * animSpeed * deltaTimeSeconds;
 
 			//stopping the animation very close to the destination
+			if (abs(c->targetX - c->x) < 1.0f && abs(c->targetY - c->y) < 1.0f) {
+				c->x = c->targetX;
+				c->y = c->targetY;
+				c->isAnimating = false;
+			}
+		}
+	}
+	for (Card* c : enemy->hand) {
+		if (c->isAnimating) {
+			c->x += (c->targetX - c->x) * animSpeed * deltaTimeSeconds;
+			c->y += (c->targetY - c->y) * animSpeed * deltaTimeSeconds;
+
 			if (abs(c->targetX - c->x) < 1.0f && abs(c->targetY - c->y) < 1.0f) {
 				c->x = c->targetX;
 				c->y = c->targetY;
@@ -406,6 +443,10 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 
 
 	if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= naY && sceneY <= naY + btnH) {
+		if (player->activeCharacter && player->activeCharacter->hp <= 0) {
+			cout << "SISTEM: character card down, change card" << endl;
+			return;
+		}
 		if (player->dices.size() >= 1) {
 			player->dices.pop_back();
 			PerformPlayerAttack(2);
@@ -417,6 +458,10 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 	}
 
 	else if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= skY && sceneY <= skY + btnH) {
+		if (player->activeCharacter && player->activeCharacter->hp <= 0) {
+			cout << "SISTEM: character card down, change card" << endl;
+			return;
+		}
 		if (player->dices.size() >= 3) {
 			player->dices.pop_back(); player->dices.pop_back(); player->dices.pop_back(); 
 			PerformPlayerAttack(3);
@@ -543,7 +588,7 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 			
 		selectedCard->isDragging = false;
 		selectedCard = nullptr;
-		OrganizeHand(player->hand);
+		OrganizeHand(player, player->hand);
 	}
 }
 void Tema1::OnMouseScroll(int mouseX, int mouseY, int offsetX, int offsetY) {
@@ -555,7 +600,7 @@ void Tema1::OnWindowResize(int width, int height) {
 	camera->SetOrthographic(0, (float)width, 0, (float)height, 0.01f, 400);
 	camera->Update();
 
-	OrganizeHand(player->hand);
+	OrganizeHand(player, player->hand);
 	OrganizeBoard();
 
 }

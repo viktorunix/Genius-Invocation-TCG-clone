@@ -6,6 +6,23 @@ using namespace m1;
 
 void Tema1::RenderCharacters(Player* p) {
 	for (CharacterCard* c : p->characters) {
+		float currentScaleY = c->height;
+		float currentScaleX = c->width;
+
+		
+		if (c->isHit) {
+			currentScaleY *= 0.8f;
+			currentScaleX *= 0.8f;
+		}
+		//overlay
+		if (c->isHit && c->hp > 0) {
+			glm::mat3 hitMat = glm::mat3(1);
+			hitMat *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+			hitMat *= trans2D::Rotate(glm::radians(90.0f));
+			hitMat *= trans2D::Scale(currentScaleY * 0.96f, currentScaleX * 0.96f);
+
+			RenderMesh2D(meshes["card_pyro"], shaders["VertexColor"], hitMat);
+		}
 		//element
 		if (c->hasAppliedElement && c->hp > 0) {
 			glm::mat3 appMat = glm::mat3(1);
@@ -58,10 +75,11 @@ void Tema1::RenderCharacters(Player* p) {
 			RenderMesh2D(drawingPart, shaders["VertexColor"], drawMatrix);
 		}
 		//drawing the background of the card
+		
 		glm::mat3 bgMatrix = glm::mat3(1);
 		bgMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
 		bgMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		bgMatrix *= trans2D::Scale(c->height * 0.95f, c->width * 0.95f);
+		bgMatrix *= trans2D::Scale(currentScaleY * 0.95f, currentScaleX * 0.95f);
 		RenderMesh2D(meshes["card_bg"], shaders["VertexColor"], bgMatrix);
 
 
@@ -69,7 +87,7 @@ void Tema1::RenderCharacters(Player* p) {
 		glm::mat3 borderMatrix = glm::mat3(1);
 		borderMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
 		borderMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		borderMatrix *= trans2D::Scale(c->height * 1.05f, c->width * 1.05f);
+		borderMatrix *= trans2D::Scale(currentScaleY * 1.05f, currentScaleX * 1.05f);
 		RenderMesh2D(c->mesh, shaders["VertexColor"], borderMatrix);
 
 		
@@ -102,6 +120,19 @@ void Tema1::RenderHand() {
 		RenderMesh2D(c->mesh, shaders["VertexColor"], modelMatrix);
 
 
+	}
+	for (Card* c : enemy->hand) {
+		
+		
+
+		
+		glm::mat3 modelMatrix = glm::mat3(1);
+		modelMatrix *= trans2D::Translate(c->x + (c->width / 2.0f), c->y + (c->height / 2.0f));
+		modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
+		modelMatrix *= trans2D::Scale(c->height, c->width);
+		RenderMesh2D(c->mesh, shaders["VertexColor"], modelMatrix);
+
+	
 	}
 }
 void Tema1::RenderCardStacks() {

@@ -46,7 +46,7 @@ void Tema1::PerformPlayerAttack(int baseDmg) {
 
 		//melt;
 		if ((atkElement == Pyro && (targetElement == Hydro || targetElement == Cryo)) ||
-			((targetElement == Hydro || atkElement == Cryo) && targetElement == Pyro)) {
+			((atkElement == Hydro || atkElement == Cryo) && targetElement == Pyro)) {
 			triggerMeltVape = true;
 		}
 		//freeze
@@ -71,6 +71,8 @@ void Tema1::PerformPlayerAttack(int baseDmg) {
 		cout << "REACTION: FREEZE" << endl;
 	}
 	target->hp -= finalDmg;
+	target->isHit = true;
+	target->hitAnimationTimer = 0.3f;
 	HandleDeath(enemy);
 	EndPlayerTurn();
 	
@@ -89,11 +91,24 @@ void Tema1::EnemyTurn() {
 		return;
 	}
 	std::vector<EnemyMove> validMoves;
-	validMoves.push_back(EnemyMove::PASS);
+	
 
 	if (enemy->dices.size() >= 1) validMoves.push_back(EnemyMove::NORMAL_ATTACK);
 	if (enemy->dices.size() >= 3) validMoves.push_back(EnemyMove::ELEMENTAL_SKILL); 
-
+	//varifying if enemy can play action card
+	int playableCardIndex = -1;
+	for (size_t i = 0; i < enemy->hand.size(); i++) {
+		ActionCard* ac = static_cast<ActionCard*>(enemy->hand[i]);
+		if (enemy->dices.size() >= ac->costDice) {
+			playableCardIndex = i;
+			break;
+		}
+	}
+	if (playableCardIndex != -1) {
+		validMoves.push_back(EnemyMove::USE_ACTION_CARD);
+		validMoves.push_back(EnemyMove::USE_ACTION_CARD);
+		validMoves.push_back(EnemyMove::USE_ACTION_CARD);
+	}
 	//verifying if enemy can switch
 	bool canSwitch = false;
 	for (CharacterCard* c : enemy->characters) {
@@ -102,7 +117,11 @@ void Tema1::EnemyTurn() {
 	if (canSwitch && enemy->dices.size() >= 1) validMoves.push_back(EnemyMove::SWITCH_CHARACTER);
 
 
-	EnemyMove move = validMoves[rand() % validMoves.size()];
+	EnemyMove move;
+	if (validMoves.empty())
+		move = EnemyMove::PASS;
+	else
+		move = validMoves[rand() % validMoves.size()];
 	switch (move) {
 	case EnemyMove::PASS:
 		cout << "INAMIC: A declarat End Round (Pass)!" << endl;
@@ -113,12 +132,16 @@ void Tema1::EnemyTurn() {
 	case EnemyMove::NORMAL_ATTACK:
 		enemy->dices.pop_back();
 		player->activeCharacter->hp -= 2;
+		player->activeCharacter->isHit = true;
+		player->activeCharacter->hitAnimationTimer = 0.3f;
 		cout << "INAMIC: Atac Normal (2 DMG)" << endl;
 		break;
 
 	case EnemyMove::ELEMENTAL_SKILL:
 		enemy->dices.pop_back(); enemy->dices.pop_back(); enemy->dices.pop_back();
 		player->activeCharacter->hp -= 3;
+		player->activeCharacter->isHit = true;
+		player->activeCharacter->hitAnimationTimer = 0.3f;
 		cout << "INAMIC: Skill Elemental (3 DMG)" << endl;
 		break;
 
@@ -134,6 +157,33 @@ void Tema1::EnemyTurn() {
 		}
 		cout << "INAMIC: A schimbat personajul activ!" << endl;
 		OrganizeBoard();
+		break;
+	case EnemyMove::USE_ACTION_CARD:
+		ActionCard* cardToPlay = static_cast<ActionCard*>(enemy->hand[playableCardIndex]);
+
+		
+		for (int i = 0; i < cardToPlay->costDice; i++)
+			enemy->dices.pop_back();
+
+
+		if (cardToPlay->type == ActionType::HEAL) {
+			enemy->activeCharacter->hp += 3;
+			if (enemy->activeCharacter->hp > 10) enemy->activeCharacter->hp = 10;
+			cout << "ENEMY: used heal card" << endl;
+		}
+		else if (cardToPlay->type == ActionType::ADD_DICE) {
+			for (int i = 0; i < 3; i++) {
+				Dice* d = new Dice(); d->element = Omni; enemy->dices.push_back(d);
+			}
+			cout << "ENEMY: used dice card" << endl;
+		}
+		else {
+			cout << "ENEMY: used attack card" << endl;
+		}
+
+		
+		enemy->hand.erase(enemy->hand.begin() + playableCardIndex);
+		OrganizeHand(enemy, enemy->hand);
 		break;
 	}
 	
@@ -176,6 +226,7 @@ void Tema1::StartNewRound() {
 	}
 	for (int i = 0; i < 2; ++i) {
 		DrawRandomActionCard(player);
+		DrawRandomActionCard(enemy);
 	}
 
 	if (firstToPass == 2) {
@@ -205,7 +256,7 @@ void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
 	newCard->currentZone = CardZone::HAND;
 	p->hand.push_back(newCard);
 
-	OrganizeHand(p->hand);
+	OrganizeHand(p, p->hand);
 }
 
 void Tema1::DrawRandomActionCard(Player* p) {

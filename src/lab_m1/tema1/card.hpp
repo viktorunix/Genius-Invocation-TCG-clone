@@ -7,7 +7,8 @@ namespace m1
 		PASS = 0,
 		NORMAL_ATTACK = 1,
 		ELEMENTAL_SKILL,
-		SWITCH_CHARACTER
+		SWITCH_CHARACTER,
+		USE_ACTION_CARD
 	};
 	enum class GameState {
 		DICE_ROLL,
@@ -68,6 +69,9 @@ namespace m1
 		bool hasAppliedElement = false;
 		Element appliedElement;
 		bool isFrozen = false;
+
+		float hitAnimationTimer = 0.0f;
+		bool isHit = false;
 	};
 
 	class ActionCard : public Card {
