@@ -14,6 +14,10 @@ void Tema1::RenderCharacters(Player* p) {
 			currentScaleY *= 0.8f;
 			currentScaleX *= 0.8f;
 		}
+		if (c->isAttacking) {
+			currentScaleY *= 1.25f;
+			currentScaleX *= 1.25f;
+		}
 		//overlay
 		if (c->isHit && c->hp > 0) {
 			glm::mat3 hitMat = glm::mat3(1);
@@ -138,20 +142,34 @@ void Tema1::RenderHand() {
 void Tema1::RenderCardStacks() {
 	glm::ivec2 resolution = window->GetResolution();
 	float leftMargin = resolution.x * 0.05f;
+	float packWidth = resolution.x * 0.07f;
+	float packHeight = packWidth * 1.35f;
+	float offsetStep = resolution.x * 0.003f;
+	for (int i = 0; i < 5; i++) {
+		glm::mat3 stackMat = glm::mat3(1);
+		stackMat *= trans2D::Translate(leftMargin - (i * offsetStep), (resolution.y * 0.30f) + (i * offsetStep));
+		stackMat *= trans2D::Rotate(glm::radians(90.0f));
+		stackMat *= trans2D::Scale(packHeight * 0.95f, packWidth * 0.95f);
+		RenderMesh2D(meshes["card_bg"], shaders["VertexColor"], stackMat);
 
-	for (int i = 0; i < 25; i += 5) {
-		card->modelMatrix = glm::mat3(1);
-		card->modelMatrix *= trans2D::Translate(leftMargin - i, resolution.y * 0.30f + i);
-		card->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		card->modelMatrix *= trans2D::Scale(100, 100);
-		RenderMesh2D(card->mesh, shaders["VertexColor"], card->modelMatrix);
+		glm::mat3 borderMat = glm::mat3(1);
+		borderMat *= trans2D::Translate(leftMargin - (i * offsetStep), (resolution.y * 0.30f) + (i * offsetStep));
+		borderMat *= trans2D::Rotate(glm::radians(90.0f));
+		borderMat *= trans2D::Scale(packHeight, packWidth);
+		RenderMesh2D(meshes["card1"], shaders["VertexColor"], borderMat);
 	}
-	for (int i = 0; i < 25; i += 5) {
-		card2->modelMatrix = glm::mat3(1);
-		card2->modelMatrix *= trans2D::Translate(leftMargin - i, resolution.y * 0.60f + i);
-		card2->modelMatrix *= trans2D::Rotate(glm::radians(90.0f));
-		card2->modelMatrix *= trans2D::Scale(100, 100);
-		RenderMesh2D(card2->mesh, shaders["VertexColor"], card2->modelMatrix);
+	for (int i = 0; i < 5; i++) {
+		glm::mat3 stackMat = glm::mat3(1);
+		stackMat *= trans2D::Translate(leftMargin - (i * offsetStep), (resolution.y * 0.60f) + (i * offsetStep));
+		stackMat *= trans2D::Rotate(glm::radians(90.0f));
+		stackMat *= trans2D::Scale(packHeight * 0.95f, packWidth * 0.95f);
+		RenderMesh2D(meshes["card_bg"], shaders["VertexColor"], stackMat);
+
+		glm::mat3 borderMat = glm::mat3(1);
+		borderMat *= trans2D::Translate(leftMargin - (i * offsetStep), (resolution.y * 0.60f) + (i * offsetStep));
+		borderMat *= trans2D::Rotate(glm::radians(90.0f));
+		borderMat *= trans2D::Scale(packHeight, packWidth);
+		RenderMesh2D(meshes["card1"], shaders["VertexColor"], borderMat);
 	}
 }
 

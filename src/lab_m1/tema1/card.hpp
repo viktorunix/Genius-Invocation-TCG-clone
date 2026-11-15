@@ -30,7 +30,9 @@ namespace m1
 	enum class ActionType {
 		HEAL,
 		ATTACK_BOOST,
-		ADD_DICE
+		ADD_DICE,
+		HEAL_ALL,
+		APPLY_STATUS_ALL
 	};
 	class Dice {
 	public:
@@ -69,9 +71,12 @@ namespace m1
 		bool hasAppliedElement = false;
 		Element appliedElement;
 		bool isFrozen = false;
+		int bonusDmg = 0;
 
 		float hitAnimationTimer = 0.0f;
 		bool isHit = false;
+		float attackAnimationTimer = 0.0f;
+		bool isAttacking = false;
 	};
 
 	class ActionCard : public Card {

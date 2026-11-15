@@ -46,6 +46,8 @@ namespace m1
 		void DrawCardFromDeck(Player* p, Card* newCard);
 		void DrawRandomActionCard(Player* p);
 		void HandleDeath(Player* p);
+		void CheckGameOver();
+		bool ConsumeDices(Player* p, int amount, Element reqElement);
 		void EndPlayerTurn();
 		void PerformPlayerAttack(int baseDmg);
 	protected:
@@ -68,6 +70,14 @@ namespace m1
 		void StartNewRound();
 
 		CardFactory* factory;
+
+		//for projectile
+		bool isProjectileActive = false;
+		float projX = 0.0f;
+		float projY = 0.0f;
+		float projTargetX = 0.0f;
+		float projTargetY = 0.0f;
+		Element projElement = Omni;
 	};
 
 	

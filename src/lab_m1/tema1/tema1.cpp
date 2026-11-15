@@ -31,7 +31,7 @@ void Tema1::OrganizeBoard() {
 		enemy->characters[i]->height = dynamicHeight;
 		enemy->characters[i]->x = startX + (i * slotSpacing);
 		
-		enemy->characters[i]->y = enemy->characters[i]->isActive ? enemyBoardY - (dynamicHeight * 0.2f) : enemyBoardY;
+		enemy->characters[i]->y = enemy->characters[i]->isActive ? enemyBoardY - (dynamicHeight * 0.25f) : enemyBoardY;
 	}
 }
 void Tema1::OrganizeHand(Player *p, std::vector<Card*>& handCards) {
@@ -149,6 +149,14 @@ void Tema1::CreateDiceMesh(const char* id, glm::vec3 color) {
 }
 Card::Card() {
 	this->modelMatrix = glm::mat3(1);
+	this->x = 0.0f;
+	this->y = 0.0f;
+	this->targetX = 0.0f;
+	this->targetY = 0.0f;
+	this->isAnimating = false;
+	this->isDragging = false;
+	this->width = 0.0f;
+	this->height = 0.0f;
 }
 
 void Tema1::Init() {
@@ -269,7 +277,8 @@ void Tema1::Init() {
 
 	Mesh* btnSkill = CreatePlayArena("btn_skill", glm::vec3(0.6f, 0.1f, 0.1f));
 	meshes["btn_skill"] = btnSkill;
-
+	Mesh* btnDraw = CreatePlayArena("btn_draw", glm::vec3(0.2f, 0.6f, 0.8f)); 
+	meshes["btn_draw"] = btnDraw;
 	Mesh* deadOverlay = new Mesh("dead_overlay");
 	std::vector<VertexFormat> ovVertices = {
 		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.15f, 0.15f, 0.15f)),
@@ -283,7 +292,7 @@ void Tema1::Init() {
 
 	Mesh* freezeOverlay = new Mesh("freeze_overlay");
 	std::vector<VertexFormat> fzVertices = {
-		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)), // Bleu gheață
+		VertexFormat(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)),
 		VertexFormat(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)),
 		VertexFormat(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f)),
 		VertexFormat(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.4f, 0.8f, 1.0f))
@@ -304,12 +313,47 @@ void Tema1::FrameStart() {
 
 
 void Tema1::Update(float deltaTimeSeconds) {
-	//updating timer for hit animations
+
+	//projectile animation
+	if (isProjectileActive) {
+		float dirX = projTargetX - projX;
+		float dirY = projTargetY - projY;
+		float dist = sqrt(dirX * dirX + dirY * dirY);
+
+		float speed = 1000.0f; 
+
+		if (dist < 20.0f) {
+			isProjectileActive = false;
+		}
+		else {
+
+			projX += (dirX / dist) * speed * deltaTimeSeconds;
+			projY += (dirY / dist) * speed * deltaTimeSeconds;
+
+			glm::mat3 matProj(1);
+			matProj *= trans2D::Translate(projX, projY);
+			matProj *= trans2D::Scale(18.0f, 18.0f); 
+
+			std::string meshName = "dice_omni";
+			if (projElement == Pyro) meshName = "dice_pyro";
+			else if (projElement == Hydro) meshName = "dice_hydro";
+			else if (projElement == Cryo) meshName = "dice_cryo";
+
+			
+			RenderMesh2D(meshes[meshName], shaders["VertexColor"], matProj);
+		}
+	}
+	//updating timer for animations
 	for (CharacterCard* c : player->characters) {
 		if (c->isHit) {
 			c->hitAnimationTimer -= deltaTimeSeconds;
 			if (c->hitAnimationTimer <= 0) 
 				c->isHit = false;
+		}
+		if (c->isAttacking) {
+			c->attackAnimationTimer -= deltaTimeSeconds;
+			if (c->attackAnimationTimer <= 0)
+				c->isAttacking = false;
 		}
 	}
 	for (CharacterCard* c : enemy->characters) {
@@ -317,6 +361,11 @@ void Tema1::Update(float deltaTimeSeconds) {
 			c->hitAnimationTimer -= deltaTimeSeconds;
 			if (c->hitAnimationTimer <= 0) 
 				c->isHit = false;
+		}
+		if (c->isAttacking) {
+			c->attackAnimationTimer -= deltaTimeSeconds;
+			if (c->attackAnimationTimer <= 0)
+				c->isAttacking = false;
 		}
 	}
 	//card drawing animation
@@ -380,6 +429,11 @@ void Tema1::Update(float deltaTimeSeconds) {
 	matSkill *= trans2D::Scale(btnW, btnH);
 	RenderMesh2D(meshes["btn_skill"], shaders["VertexColor"], matSkill);
 
+	glm::mat3 matDraw(1);
+	float drY = res.y * 0.75f;
+	matDraw *= trans2D::Translate(btnX, drY);
+	matDraw *= trans2D::Scale(btnW, btnH);
+	RenderMesh2D(meshes["btn_draw"], shaders["VertexColor"], matDraw);
 }
 
 void Tema1::FrameEnd() {
@@ -447,8 +501,7 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 			cout << "SISTEM: character card down, change card" << endl;
 			return;
 		}
-		if (player->dices.size() >= 1) {
-			player->dices.pop_back();
+		if (ConsumeDices(player, 1, Omni)) {
 			PerformPlayerAttack(2);
 			cout << "COMBAT: " << " normal attack (2 DMG)" << endl;
 		}
@@ -462,8 +515,18 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 			cout << "SISTEM: character card down, change card" << endl;
 			return;
 		}
-		if (player->dices.size() >= 3) {
-			player->dices.pop_back(); player->dices.pop_back(); player->dices.pop_back(); 
+		if (player->activeCharacter && player->activeCharacter->isFrozen) {
+			cout << "SISTEM: You are frozen" << endl;
+			playerPassed = true;
+			if (firstToPass == 0) firstToPass = 1;
+			if (enemyPassed) StartNewRound();
+			else {
+				currentState = GameState::ENEMY_ACTION;
+				EnemyTurn();
+			}
+			return;
+		}
+		if (ConsumeDices(player, 3, player->activeCharacter->element)) {
 			PerformPlayerAttack(3);
 			cout << "COMBAT: " << " used elemental skill (3 DMG)" << endl;
 		}
@@ -471,7 +534,18 @@ void Tema1::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods) {
 			cout << "COMBAT: Not enough dices for elemental skill!" << endl;
 		}
 	}
-
+	float drY = res.y * 0.75f;
+	if (button == GLFW_MOUSE_BUTTON_2 && mouseX >= btnX && mouseX <= btnX + btnW && sceneY >= drY && sceneY <= drY + btnH) {
+		if (ConsumeDices(player, 1, Omni) && player->hand.size() < 10) {
+			DrawRandomActionCard(player);
+			cout << "SYSTEM: drawn 1 card" << endl;
+			EndPlayerTurn(); 
+		}
+		else {
+			cout <<"SYSTEM: not enough dices for drawing card" << endl;
+		}
+		return;
+	}
 	
 	//input on active characters
 	if (button == GLFW_MOUSE_BUTTON_2) {
@@ -528,10 +602,7 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 			//valid drop 
 			ActionCard* actionCard = static_cast<ActionCard*>(selectedCard);
 			if (actionCard != nullptr) {
-				if (player->dices.size() >= actionCard->costDice) {
-					for (int i = 0; i < actionCard->costDice; i++) {
-						player->dices.pop_back();
-					}
+				if (ConsumeDices(player, actionCard->costDice, Omni)) {
 					switch (actionCard->type) {
 					case ActionType::HEAL: {
 						CharacterCard* activePlayer = nullptr;
@@ -547,8 +618,7 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 						break;
 					}
 					case ActionType::ADD_DICE: {
-						for (int i = 0; i < 3; i++) {
-							Dice* d = new Dice();
+						for (int i = 0; i < 3; i++) {								Dice* d = new Dice();
 							d->element = Omni;
 							player->dices.push_back(d);
 						}
@@ -556,23 +626,40 @@ void Tema1::OnMouseBtnRelease(int mouseX, int mouseY, int button, int mods) {
 						break;
 					}
 					case ActionType::ATTACK_BOOST: {
+						player->activeCharacter->bonusDmg = 2;
 						cout << "ACTION: used ATTACK BOOST" << endl;
 						break;
 					}
+					case ActionType::HEAL_ALL:
+						for (CharacterCard* c : player->characters) {
+							if (c->hp > 0) { c->hp += 2; if (c->hp > 10) c->hp = 10; }
+						}
+						cout << "ACTION: used AOE HEAL (All +2 HP)" << endl;
+						break;
+					case ActionType::APPLY_STATUS_ALL:
+						if (player->activeCharacter) {
+							Element myElem = player->activeCharacter->element;
+							for (CharacterCard* c : enemy->characters) {
+								if (c->hp > 0) { c->hasAppliedElement = true; c->appliedElement = myElem; }
+							}
+							cout << "ACTION: Applied Status to ALL enemies!" << endl;
+						}
+						break;
+					}
 
-					}
-					selectedCard->currentZone = CardZone::USED;
-					player->hand.erase(std::remove(player->hand.begin(), player->hand.end(), selectedCard), player->hand.end());
+				
+					
+				selectedCard->currentZone = CardZone::USED;
+				player->hand.erase(std::remove(player->hand.begin(), player->hand.end(), selectedCard), player->hand.end());
 
-					if (enemyPassed) {
-						currentState = GameState::PLAYER_ACTION;
-					}
-					else {
-						currentState = GameState::ENEMY_ACTION;
-						EnemyTurn();
-					}
+				if (enemyPassed) {
+					currentState = GameState::PLAYER_ACTION;
 				}
 				else {
+					currentState = GameState::ENEMY_ACTION;
+					EnemyTurn();
+				}
+			}else {
 					cout << "SYSTEM: not enough dices" << endl;
 					selectedCard->currentZone = CardZone::HAND;
 				}
@@ -601,6 +688,7 @@ void Tema1::OnWindowResize(int width, int height) {
 	camera->Update();
 
 	OrganizeHand(player, player->hand);
+	OrganizeHand(enemy, enemy->hand);
 	OrganizeBoard();
 
 }

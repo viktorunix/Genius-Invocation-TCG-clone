@@ -22,6 +22,7 @@ void Tema1::HandleDeath(Player* p) {
 			return;
 		}
 	}
+	CheckGameOver();
 }
 void Tema1::EndPlayerTurn() {
 	if (enemyPassed) {
@@ -43,24 +44,29 @@ void Tema1::PerformPlayerAttack(int baseDmg) {
 
 	if (target->hasAppliedElement) {
 		Element targetElement = target->appliedElement;
-
+		bool reactionOccurred = false;
 		//melt;
 		if ((atkElement == Pyro && (targetElement == Hydro || targetElement == Cryo)) ||
 			((atkElement == Hydro || atkElement == Cryo) && targetElement == Pyro)) {
 			triggerMeltVape = true;
+			reactionOccurred = true;
 		}
 		//freeze
 		else if ((atkElement == Hydro && targetElement == Cryo) || (atkElement == Cryo && targetElement == Hydro)) {
 			triggerFreeze = true;
+			reactionOccurred = true;
 		}
-		target->hasAppliedElement = false;
+		if (reactionOccurred)
+			target->hasAppliedElement = false;
+		else
+			target->appliedElement = atkElement;
 	}
 	else {
 		target->hasAppliedElement = true;
 		target->appliedElement = atkElement;
 	}
 	//dmg calculation
-	int finalDmg = baseDmg;
+	int finalDmg = baseDmg + player->activeCharacter->bonusDmg;
 	if (triggerMeltVape) {
 		finalDmg += 2;
 		cout << "REACTION: MELT/VAPE" << endl;
@@ -73,6 +79,17 @@ void Tema1::PerformPlayerAttack(int baseDmg) {
 	target->hp -= finalDmg;
 	target->isHit = true;
 	target->hitAnimationTimer = 0.3f;
+
+	player->activeCharacter->isAttacking = true;
+	player->activeCharacter->attackAnimationTimer = 0.2f;
+	
+	//starting the animation for projectile
+	isProjectileActive = true;
+	projX = player->activeCharacter->x + (player->activeCharacter->width / 2.0f);
+	projY = player->activeCharacter->y + (player->activeCharacter->height / 2.0f);
+	projTargetX = target->x + (target->width / 2.0f);
+	projTargetY = target->y + (target->height / 2.0f);
+	projElement = atkElement;
 	HandleDeath(enemy);
 	EndPlayerTurn();
 	
@@ -83,7 +100,7 @@ void Tema1::EnemyTurn() {
 	//verify freeze
 	if (enemy->activeCharacter->isFrozen) {
 		cout << "ENEMY: character card frozen, skip their turn" << endl;
-		enemy->activeCharacter->isFrozen = false;
+		//enemy->activeCharacter->isFrozen = false;
 		enemyPassed = true;
 		if (firstToPass == 0) firstToPass = 2;
 
@@ -114,7 +131,7 @@ void Tema1::EnemyTurn() {
 	for (CharacterCard* c : enemy->characters) {
 		if (!c->isActive && c->hp > 0) canSwitch = true;
 	}
-	if (canSwitch && enemy->dices.size() >= 1) validMoves.push_back(EnemyMove::SWITCH_CHARACTER);
+	if (canSwitch && ConsumeDices(enemy, 1, Omni)) validMoves.push_back(EnemyMove::SWITCH_CHARACTER);
 
 
 	EnemyMove move;
@@ -130,60 +147,101 @@ void Tema1::EnemyTurn() {
 		break;
 
 	case EnemyMove::NORMAL_ATTACK:
-		enemy->dices.pop_back();
-		player->activeCharacter->hp -= 2;
-		player->activeCharacter->isHit = true;
-		player->activeCharacter->hitAnimationTimer = 0.3f;
-		cout << "INAMIC: Atac Normal (2 DMG)" << endl;
+		if (ConsumeDices(enemy, 1, Omni)) {
+			int damage = 2 + enemy->activeCharacter->bonusDmg;
+			player->activeCharacter->hp -= damage;
+			player->activeCharacter->isHit = true;
+			player->activeCharacter->hitAnimationTimer = 0.3f;
+
+			enemy->activeCharacter->isAttacking = true;
+			enemy->activeCharacter->attackAnimationTimer = 0.2f;
+			cout << "INAMIC: Atac Normal (2 DMG)" << endl;
+			
+			isProjectileActive = true;
+			projX = enemy->activeCharacter->x + (enemy->activeCharacter->width / 2.0f);
+			projY = enemy->activeCharacter->y + (enemy->activeCharacter->height / 2.0f);
+			projTargetX = player->activeCharacter->x + (player->activeCharacter->width / 2.0f);
+			projTargetY = player->activeCharacter->y + (player->activeCharacter->height / 2.0f);
+			projElement = Omni;
+		}
 		break;
 
 	case EnemyMove::ELEMENTAL_SKILL:
-		enemy->dices.pop_back(); enemy->dices.pop_back(); enemy->dices.pop_back();
-		player->activeCharacter->hp -= 3;
-		player->activeCharacter->isHit = true;
-		player->activeCharacter->hitAnimationTimer = 0.3f;
-		cout << "INAMIC: Skill Elemental (3 DMG)" << endl;
+		if (ConsumeDices(enemy, 3, enemy->activeCharacter->element)) {
+			int damage = 3 + enemy->activeCharacter->bonusDmg;
+			player->activeCharacter->hp -= damage;
+			player->activeCharacter->isHit = true;
+			player->activeCharacter->hitAnimationTimer = 0.3f;
+
+			enemy->activeCharacter->isAttacking = true;
+			enemy->activeCharacter->attackAnimationTimer = 0.2f;
+
+			isProjectileActive = true;
+			projX = enemy->activeCharacter->x + (enemy->activeCharacter->width / 2.0f);
+			projY = enemy->activeCharacter->y + (enemy->activeCharacter->height / 2.0f);
+			projTargetX = player->activeCharacter->x + (player->activeCharacter->width / 2.0f);
+			projTargetY = player->activeCharacter->y + (player->activeCharacter->height / 2.0f);
+			projElement = enemy->activeCharacter->element;
+			cout << "INAMIC: Skill Elemental (3 DMG)" << endl;
+		}
 		break;
 
 	case EnemyMove::SWITCH_CHARACTER:
-		enemy->dices.pop_back();
-		enemy->activeCharacter->isActive = false;
-		for (CharacterCard* c : enemy->characters) {
-			if (!c->isActive && c->hp > 0) {
-				c->isActive = true;
-				enemy->activeCharacter = c;
-				break;
+		if (ConsumeDices(enemy, 1, Omni)) {
+			enemy->dices.pop_back();
+			enemy->activeCharacter->isActive = false;
+			for (CharacterCard* c : enemy->characters) {
+				if (!c->isActive && c->hp > 0) {
+					c->isActive = true;
+					enemy->activeCharacter = c;
+					break;
+				}
 			}
+			cout << "INAMIC: A schimbat personajul activ!" << endl;
+			OrganizeBoard();
 		}
-		cout << "INAMIC: A schimbat personajul activ!" << endl;
-		OrganizeBoard();
 		break;
 	case EnemyMove::USE_ACTION_CARD:
 		ActionCard* cardToPlay = static_cast<ActionCard*>(enemy->hand[playableCardIndex]);
 
 		
-		for (int i = 0; i < cardToPlay->costDice; i++)
-			enemy->dices.pop_back();
+		if (ConsumeDices(enemy, cardToPlay->costDice, Omni)) {
 
-
-		if (cardToPlay->type == ActionType::HEAL) {
-			enemy->activeCharacter->hp += 3;
-			if (enemy->activeCharacter->hp > 10) enemy->activeCharacter->hp = 10;
-			cout << "ENEMY: used heal card" << endl;
-		}
-		else if (cardToPlay->type == ActionType::ADD_DICE) {
-			for (int i = 0; i < 3; i++) {
-				Dice* d = new Dice(); d->element = Omni; enemy->dices.push_back(d);
+			if (cardToPlay->type == ActionType::HEAL) {
+				enemy->activeCharacter->hp += 3;
+				if (enemy->activeCharacter->hp > 10) enemy->activeCharacter->hp = 10;
+				cout << "ENEMY: used heal card" << endl;
 			}
-			cout << "ENEMY: used dice card" << endl;
-		}
-		else {
-			cout << "ENEMY: used attack card" << endl;
-		}
+			else if (cardToPlay->type == ActionType::ADD_DICE) {
+				for (int i = 0; i < 3; i++) {
+					Dice* d = new Dice(); d->element = Omni; enemy->dices.push_back(d);
+				}
+				cout << "ENEMY: used dice card" << endl;
+			}
+			else if (cardToPlay->type == ActionType::HEAL_ALL) {
+				for (CharacterCard* c : enemy->characters) {
+					if (c->hp > 0) { c->hp += 2; if (c->hp > 10) c->hp = 10; }
+				}
+				cout << "ENEMY: used AOE HEAL" << endl;
+			}
+			else if (cardToPlay->type == ActionType::APPLY_STATUS_ALL) {
+				if (enemy->activeCharacter) {
+					Element eElem = enemy->activeCharacter->element;
+					for (CharacterCard* c : player->characters) {
+						if (c->hp > 0) { c->hasAppliedElement = true; c->appliedElement = eElem; }
+					}
+					cout << "ENEMY: used AOE STATUS card" << endl;
+				}
+			}
+			else {
+				enemy->activeCharacter->bonusDmg += 2;
+				cout << "ENEMY: used attack card" << endl;
+			}
 
-		
-		enemy->hand.erase(enemy->hand.begin() + playableCardIndex);
-		OrganizeHand(enemy, enemy->hand);
+
+			enemy->hand.erase(enemy->hand.begin() + playableCardIndex);
+			OrganizeHand(enemy, enemy->hand);
+		}
 		break;
 	}
 	
@@ -205,7 +263,8 @@ void Tema1::StartNewRound() {
 	playerPassed = false;
 	enemyPassed = false;
 
-
+	for (CharacterCard* c : player->characters) c->isFrozen = false;
+	for (CharacterCard* c : enemy->characters) c->isFrozen = false;
 	for (Dice* d : player->dices)
 		delete d;
 	player->dices.clear();
@@ -217,11 +276,11 @@ void Tema1::StartNewRound() {
 
 	for (int i = 0; i < 10; i++) {
 		Dice* d1 = new Dice();
-		d1->element = Omni;
+		d1->element = static_cast<Element>(rand() % 4); 
 		player->dices.push_back(d1);
 
 		Dice* d2 = new Dice();
-		d2->element = Omni;
+		d2->element = static_cast<Element>(rand() % 4);
 		enemy->dices.push_back(d2);
 	}
 	for (int i = 0; i < 2; ++i) {
@@ -260,7 +319,7 @@ void Tema1::DrawCardFromDeck(Player* p, Card* newCard) {
 }
 
 void Tema1::DrawRandomActionCard(Player* p) {
-	int r = rand() % 3;
+	int r = rand() % 5;
 	Card* newCard = nullptr;
 
 	if (r == 0) {
@@ -270,8 +329,88 @@ void Tema1::DrawRandomActionCard(Player* p) {
 	else if (r == 1) {
 		newCard = factory->CreateAttackBoostCard();
 	}
-	else {
+	else if (r == 2) {
 		newCard = factory->CreateAddDiceCard();
 	}
+	else if (r == 3) {
+		newCard = factory->CreateHealAllCard();
+	}
+	else {
+		newCard = factory->CreateStatusAllCard();
+	}
+
 	DrawCardFromDeck(p, newCard);
+}
+void Tema1::CheckGameOver() {
+	bool playerAlive = false;
+	for (CharacterCard* c : player->characters) if (c->hp > 0) playerAlive = true;
+
+	bool enemyAlive = false;
+	for (CharacterCard* c : enemy->characters) if (c->hp > 0) enemyAlive = true;
+
+	if (!playerAlive || !enemyAlive) {
+		if (!playerAlive) cout << "SYSTEM: enemy won" << endl;
+		if (!enemyAlive) cout << "SYSTEM: player won" << endl;
+
+		
+		for (CharacterCard* c : player->characters) {
+			c->hp = 10; c->isFrozen = false; 
+			c->hasAppliedElement = false; 
+			c->isActive = false;
+			c->bonusDmg = 0;
+		}
+		for (CharacterCard* c : enemy->characters) {
+			c->hp = 10;
+			c->isFrozen = false;
+			c->hasAppliedElement = false;
+			c->isActive = false;
+			c->bonusDmg = 0;
+		}
+
+		player->characters[0]->isActive = true; player->activeCharacter = player->characters[0];
+		enemy->characters[0]->isActive = true; enemy->activeCharacter = enemy->characters[0];
+
+		OrganizeBoard();
+		StartNewRound();
+	}
+}
+
+bool Tema1::ConsumeDices(Player* p, int amount, Element reqElement) {
+	//verifying if we have enough dices
+	int totalAvailable = 0;
+	for (Dice* d : p->dices) {
+		if (reqElement == Omni || d->element == reqElement || d->element == Omni) {
+			totalAvailable++;
+		}
+	}
+	if (totalAvailable < amount) return false;
+
+	int needed = amount;
+
+	//we first consume the dices tied to that element
+
+	if (reqElement != Omni) {
+		for (auto it = p->dices.begin(); it != p->dices.end() && needed > 0;) {
+			if ((*it)->element == reqElement) {
+				delete* it;
+				it = p->dices.erase(it);
+				needed--;
+			}
+			else {
+				++it;
+			}
+		}
+	}
+	//consuming omni dices
+	for (auto it = p->dices.begin(); it != p->dices.end() && needed > 0; ) {
+		if (reqElement == Omni || (*it)->element == Omni) {
+			delete* it;
+			it = p->dices.erase(it);
+			needed--;
+		}
+		else {
+			++it;
+		}
+	}
+	return true;
 }

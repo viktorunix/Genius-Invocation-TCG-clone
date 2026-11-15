@@ -101,6 +101,31 @@ ActionCard* CardFactory::CreateAddDiceCard() {
 
 	return card;
 }
+ActionCard* CardFactory::CreateHealAllCard() {
+	if (meshes.find("icon_cross_aoe") == meshes.end()) {
+		meshes["icon_cross_aoe"] = CreateCrossMesh("icon_cross_aoe", glm::vec3(0.2f, 1.0f, 0.6f));
+	}
+	ActionCard* card = new ActionCard();
+	card->mesh = meshes["card1"];
+	card->currentZone = CardZone::HAND;
+	card->costDice = 3;
+	card->type = ActionType::HEAL_ALL;
+	card->effectIconMesh = meshes["icon_cross_aoe"];
+	return card;
+}
+
+ActionCard* CardFactory::CreateStatusAllCard() {
+	if (meshes.find("icon_rhombus_aoe") == meshes.end()) {
+		meshes["icon_rhombus_aoe"] = CreateRhombusMesh("icon_rhombus_aoe", glm::vec3(0.8f, 0.2f, 0.8f));
+	}
+	ActionCard* card = new ActionCard();
+	card->mesh = meshes["card1"];
+	card->currentZone = CardZone::HAND;
+	card->costDice = 4; 
+	card->type = ActionType::APPLY_STATUS_ALL;
+	card->effectIconMesh = meshes["icon_rhombus_aoe"];
+	return card;
+}
 
 Mesh* CardFactory::CreateTriangleMesh(const char* name, glm::vec3 color) {
 	std::vector<VertexFormat> vertices = {
@@ -241,6 +266,7 @@ CharacterCard* CardFactory::CreateHydroCharacter() {
 	card->mesh = meshes["card_hydro"];
 	card->borderColor = glm::vec3(0.1f, 0.3f, 0.8f);
 	card->hp = 10;
+	card->element = Hydro;
 
 	card->symbolMesh = meshes["symbol_hydro"];
 	card->centerDrawingMeshes.push_back(meshes["draw_knight"]);

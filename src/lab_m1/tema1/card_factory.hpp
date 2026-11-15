@@ -16,6 +16,8 @@ namespace m1 {
 		ActionCard* CreateHealCard();
 		ActionCard* CreateAttackBoostCard();
 		ActionCard* CreateAddDiceCard();
+		ActionCard* CreateHealAllCard();
+		ActionCard* CreateStatusAllCard();
 	private:
 		std::unordered_map<std::string, Mesh*>& meshes;
 
